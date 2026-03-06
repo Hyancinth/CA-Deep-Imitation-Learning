@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
 
+from modelling import link_points
+from utils import dist_obstacle_to_links
+
 def fk(theta, a):
     """
     Calculate forward kinematics for a 2-link RR manipulator
@@ -46,9 +49,7 @@ def jacobian(theta, a = np.array([1.0, 1.0])):
 
     return j1, j2
 
-save_pos = []
-
-def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([0.5, 1]), obstacle=np.array([1.0, 0.8])):
+def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([1.5, 1]), obstacle=np.array([1.0, 0.8])):
     model = do_mpc.model.Model('discrete')
 
     # States (x)
@@ -76,13 +77,6 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([0.5, 1]), obstac
     }
 
     mpc.set_param(**setup_mpc)
-    
-    # Tuning parameters
-    alpha = 0.89 # SSM 
-    d_ = 0.05 # distance leeway for SSM
-
-    gamma = 5 # repulsion weight in cost function
-    beta = 2 # weight for repulsion function
 
 
     # Distances
@@ -92,12 +86,22 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([0.5, 1]), obstac
     x2 = pos[2]
     y2 = pos[3]
 
+    n_points = 4
+    mid_link_points = link_points([model.x['theta1'], model.x['theta2']], [a1, a2], n_points = n_points)
+
     ee_dist_to_obs = ca.sqrt((x2 - obstacle[0])**2 + (y2 - obstacle[1])**2)
     ee_dist_to_target = ca.sqrt((x2 - target[0])**2 + (y2 - target[1])**2)
-
     j1_dist_to_obs = ca.sqrt((x1 - obstacle[0])**2 + (y1 - obstacle[1])**2)
 
     # Cost function 
+
+    # Tuning parameters
+    alpha = 0.89 # SSM 
+    d_ = 0.05 # distance leeway for SSM
+
+    gamma = 5 # repulsion weight in cost function
+    beta = 2 # weight for repulsion function
+
     epsilon = 1e-6 # prevent division by zero
     mu = ca.exp(-beta*(ee_dist_to_obs**2/(ee_dist_to_target**2 + epsilon)))
     
@@ -129,8 +133,19 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([0.5, 1]), obstac
     v1 = v_j1[0]**2 + v_j1[1]**2 # velocity magnitude squared of joint 1
     v_ee = v_j2[0]**2 + v_j2[1]**2 # velocity magnitude squared of end effector
 
-    mpc.set_nl_cons('ssm1', v1 - zeta_1, ub = 0)
-    mpc.set_nl_cons('ssm2', v_ee - zeta_2, ub = 0)
+    mpc.set_nl_cons('ssm_joint1', v1 - zeta_1, ub = 0)
+    mpc.set_nl_cons('ssm_ee', v_ee - zeta_2, ub = 0)
+
+    for id, (px, py) in enumerate(mid_link_points):
+        point_dist_to_obs = ca.sqrt((px - obstacle[0])**2 + (py - obstacle[1])**2)
+
+        if id < n_points: 
+            v_point = v1 # approximate velocity magnitude of points along link 1 using jacobian of joint 1
+        else:
+            v_point = v_ee # approximate velocity magnitude of points along link 2 using jacobian of end effector
+
+        zeta_point = ca.fmax(alpha**2 * (point_dist_to_obs**2 - (obs_radius + joint_radius + d_)**2), min_zeta)
+        mpc.set_nl_cons(f'ssm_point_{id}', v_point - zeta_point, ub = 0)
 
     # Ground constraint (prevent robot from going below the ground)
     mpc.set_nl_cons('ground1', -y1, ub = -0.1)
@@ -165,8 +180,8 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([0.5, 1]), obstac
 #     a = [1.0, 1.0]
 
 
-def simulate():
-    mpc, simulator = mpc_controller()
+def simulate(target, obstacle):
+    mpc, simulator = mpc_controller(target=target, obstacle=obstacle)
 
     simulator.reset_history()
     mpc.reset_history()
@@ -193,11 +208,9 @@ def simulate():
 def robot_motion(mpc, simulator):
     # extract data
     theta1_sim = simulator.data['_x', 'theta1']
-    print(len(theta1_sim))
     theta2_sim = simulator.data['_x', 'theta2']
 
     theta1_mpc = mpc.data['_x', 'theta1']
-    print(len(theta1_mpc))
     theta2_mpc = mpc.data['_x', 'theta2']
 
     # store joint positions
@@ -235,7 +248,7 @@ def robot_motion(mpc, simulator):
     return {'x1_sim': x1_sim, 'y1_sim': y1_sim, 'x2_sim': x2_sim, 'y2_sim': y2_sim,
             'x1_mpc': x1_mpc, 'y1_mpc': y1_mpc, 'x2_mpc': x2_mpc, 'y2_mpc': y2_mpc}
 
-def visualize(mpc, simulator):
+def visualize(mpc, simulator, goal_center=np.array([1.5, 0.5]), obs_center=np.array([1.0, 0.8]), obs_radius=0.1):
     
     mpc_graphics = do_mpc.graphics.Graphics(mpc.data) # results from MPC 
     # sim_graphics = do_mpc.graphics.Graphics(simulator.data)
@@ -290,14 +303,16 @@ def visualize(mpc, simulator):
     fig.align_ylabels()
     fig.tight_layout()
 
+    ax1.hlines(0, -2.5, 2.5, colors='k')
+
     obs_radius = 0.1
-    obs_center = (1.0, 0.8)
+    obs_center = (obs_center[0], obs_center[1])
     obs_circle_mpc = plt.Circle(obs_center, obs_radius, color='r', alpha=0.5)
     # obs_circle_sim = plt.Circle(obs_center, obs_radius, color='r', alpha=0.5)
     ax1.add_patch(obs_circle_mpc)
     # ax2.add_patch(obs_circle_sim)
 
-    goal_center = (0.5, 1.0)
+    goal_center = (goal_center[0], goal_center[1])
     goal_circle = plt.Circle(goal_center, 0.01, color='b', alpha=0.5)
     ax1.add_patch(goal_circle)
 
@@ -322,6 +337,14 @@ def visualize(mpc, simulator):
         mpc_circle_j1 = plt.Circle((x1_mpc[i], y1_mpc[i]), joint_radius, color='g', alpha=0.5)
         ax1.add_patch(mpc_circle_ee)
         ax1.add_patch(mpc_circle_j1)
+
+        mid_link_points = link_points([mpc.data['_x', 'theta1'][i][0], mpc.data['_x', 'theta2'][i][0]], [1.0, 1.0], n_points = 4)
+        for px, py in mid_link_points:
+            px = float(px)
+            py = float(py)
+            link_circle = plt.Circle((px, py), joint_radius, color='g', alpha=0.5)
+            ax1.add_patch(link_circle)
+            circles.append(link_circle)
 
         # sim_circle_ee = plt.Circle((x2_sim[i], y2_sim[i]), joint_radius, color='g', alpha=0.5)
         # sim_circle_j1 = plt.Circle((x1_sim[i], y1_sim[i]), joint_radius, color='g', alpha=0.5)
@@ -353,9 +376,20 @@ def save_animation(anim, filename):
         anim.save(filename, writer=gif_writer)
     except Exception as e:
         print(f"Error saving animation: {e}")
-    
 
 if __name__ == "__main__":
-    mpc, simulator = simulate()
-    anim = visualize(mpc, simulator)
+    target = np.array([1.5, 0.5])
+    obstacle = np.array([2.0, 0.9])
+
+    init_theta = np.array([ca.pi/6, -ca.pi/6])
+    a = np.array([1.0, 1.0])
+
+    dist = dist_obstacle_to_links(obstacle, init_theta, a)
+    sphere_dist = dist - (0.1 + 0.1) # distance from obstacle to robot links minus radius of obstacle and robot joints
+    if sphere_dist < 0.1:
+        print(f"Warning: Obstacle is too close to the robot's initial configuration: {sphere_dist:.3f}m from the links. Consider moving the obstacle or adjusting the initial joint angles.")
+    else:
+        mpc, simulator = simulate(target, obstacle)
+        anim = visualize(mpc, simulator, target, obstacle)
+    
     # save_animation(anim, 'mpc_animation.gif')
