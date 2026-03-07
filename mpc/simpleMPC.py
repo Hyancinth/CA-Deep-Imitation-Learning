@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
 
-from modelling import link_points
-from utils import fk, jacobian, dist_obstacle_to_links
-from visualization import visualize, save_animation
+from utils.modelling import link_points
+from utils.utils import fk, jacobian, dist_obstacle_to_links
+from visualization.visualize import visualize, save_animation
 
 def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([1.5, 1]), obstacle=np.array([1.0, 0.8])):
     """

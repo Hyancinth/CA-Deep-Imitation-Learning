@@ -88,6 +88,23 @@ def robot_motion(mpc, simulator):
     return {'x1_sim': x1_sim, 'y1_sim': y1_sim, 'x2_sim': x2_sim, 'y2_sim': y2_sim,
             'x1_mpc': x1_mpc, 'y1_mpc': y1_mpc, 'x2_mpc': x2_mpc, 'y2_mpc': y2_mpc}
 
+def point_in_workspace(x, y, a = [1.0, 1.0]):
+    """
+    Check if a point (x, y) is within the reachable workspace of the robot
+
+    The workspace of a 2 Dof RR manipulator is an annulus defined by:
+    - Outer radius: a1 + a2
+    - Inner radius: |a1 - a2|
+
+    A point is in the workspace if its distance from the origin (assuming robot base is at the origin) is between the inner and outer radius 
+    """
+    a1 = a[0]
+    a2 = a[1]
+
+    dist = np.sqrt(x**2 + y**2)
+
+    return abs(a1 - a2) <= dist <= (a1 + a2)
+
 def dist_obstacle_to_links(obstacle, theta, a):
     """
     Compute the distance from the obstacle to the line defining each link of the robot

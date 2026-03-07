@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, ImageMagickWriter
 import do_mpc
-from utils import robot_motion
-from modelling import link_points
+from utils.utils import robot_motion
+from utils.modelling import link_points
 
 def visualize(mpc, simulator, target=np.array([1.5, 0.5]), obstacle=np.array([1.0, 0.8]), obs_radius=0.1, joint_radius=0.1):
     """

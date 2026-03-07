@@ -1,8 +1,8 @@
 import numpy as np
 import casadi as ca
 
-from simpleMPC import simulate
-from visualization import visualize, save_animation
+from mpc.simpleMPC import simulate
+from visualization.visualize import visualize, save_animation
 
 def main():
     target = np.array([1.0, 1.3])
