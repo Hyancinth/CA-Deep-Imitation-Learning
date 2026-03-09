@@ -128,4 +128,4 @@ def dist_obstacle_to_links(obstacle, theta, a):
 
     d2 = np.abs((p2_end[0] - p2_start[0])*obstacle[0] - (p2_end[1] - p2_start[1])*obstacle[1] + p2_end[0]*p2_start[1] - p2_end[1]*p2_start[0]) / np.linalg.norm(p2_end - p2_start)
 
-    return min(d1, d2)
+    return [d1, d2]
