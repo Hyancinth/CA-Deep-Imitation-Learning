@@ -45,10 +45,13 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1):
     # MPC controller
     mpc = do_mpc.controller.MPC(model)
     setup_mpc = {
-        'n_horizon': 25, 
+        'n_horizon': 10, 
         't_step': Ts, 
         'store_full_solution': True,
-        'nlpsol_opts': {'ipopt.max_cpu_time': 0.5} # set maximum solve time for each MPC step (in seconds)
+        # 'nlpsol_opts': {'ipopt.max_iter': 100}
+        'nlpsol_opts': {'ipopt.max_cpu_time': 0.20}, # set maximum solve time for each MPC step (in seconds)
+        'ipopt.print_level': 0,
+        'print_time': 0
     }
 
     mpc.set_param(**setup_mpc)
@@ -179,8 +182,10 @@ if __name__ == "__main__":
 
         x0 = x0_init.copy()
 
-        target = np.array([1.0, 1.0])
-        obstacle = np.array([1.4, 1.0])
+        # target = np.array([0.36387244, 1.63541161])
+        # obstacle = np.array([1.68484258, 0.38647358])
+        target = np.array([-1.309271880675988, 0.5348810699093689])
+        obstacle = np.array([-1.5113456472181412, 0.83831610332521])
 
         # update parameters
         p_template['_p', 0, 'target'] = target.reshape(2,1)

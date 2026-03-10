@@ -88,6 +88,24 @@ def robot_motion(mpc, simulator):
     return {'x1_sim': x1_sim, 'y1_sim': y1_sim, 'x2_sim': x2_sim, 'y2_sim': y2_sim,
             'x1_mpc': x1_mpc, 'y1_mpc': y1_mpc, 'x2_mpc': x2_mpc, 'y2_mpc': y2_mpc}
 
+def robot_motion_from_data(theta1_arr, theta2_arr, a = [1.0, 1.0]):
+    """
+    Calculate the (x,y) positions of each joint using forward kinematics for given arrays of joint angles
+    """
+    x1_arr = []
+    y1_arr = []
+    x2_arr = []
+    y2_arr = []
+
+    for t1, t2 in zip(theta1_arr, theta2_arr):
+        pos = fk([t1, t2], a)
+        x1_arr.append(pos[0])
+        y1_arr.append(pos[1])
+        x2_arr.append(pos[2])
+        y2_arr.append(pos[3])
+
+    return {'x1': x1_arr, 'y1': y1_arr, 'x2': x2_arr, 'y2': y2_arr}
+
 def point_in_workspace(x, y, a = [1.0, 1.0]):
     """
     Check if a point (x, y) is within the reachable workspace of the robot
@@ -105,27 +123,49 @@ def point_in_workspace(x, y, a = [1.0, 1.0]):
 
     return abs(a1 - a2) <= dist <= (a1 + a2)
 
+def dist_point_to_segment(point, seg_start, seg_end):
+    """Distance from a point to a line segment, compatible with both numpy and CasADi"""
+    point = np.array(point).flatten()
+    seg_start = np.array(seg_start).flatten()
+    seg_end = np.array(seg_end).flatten()
+    
+    seg_vec = seg_end - seg_start
+    seg_len_sq = np.dot(seg_vec, seg_vec)
+    
+    t = np.dot(point - seg_start, seg_vec) / seg_len_sq
+    t = np.clip(t, 0, 1)
+    
+    closest = seg_start + t * seg_vec
+    return np.linalg.norm(point - closest)
+
+
 def dist_obstacle_to_links(obstacle, theta, a):
     """
-    Compute the distance from the obstacle to the line defining each link of the robot
+    Compute the distance from the obstacle to each link segment of the robot.
     """
     theta1 = theta[0]
     theta2 = theta[1]
     a1 = a[0]
     a2 = a[1]
 
-    # points along link 1
-    p1_start = np.array([0, 0])
-    p1_end = np.array([a1 * np.cos(theta1), a1 * np.sin(theta1)])
+    # Link 1: base → joint
+    p1_start = np.array([0.0, 0.0])
+    p1_end   = np.array([a1 * np.cos(theta1),
+                          a1 * np.sin(theta1)])
 
-    # points along link 2
+    # Link 2: joint → end-effector
     p2_start = p1_end
-    p2_end = np.array([a1 * np.cos(theta1) + a2 * np.cos(theta1 + theta2), 
-                       a1 * np.sin(theta1) + a2 * np.sin(theta1 + theta2)])
+    p2_end   = np.array([a1 * np.cos(theta1) + a2 * np.cos(theta1 + theta2),
+                          a1 * np.sin(theta1) + a2 * np.sin(theta1 + theta2)])
 
-    # distance from obstacle to line (vector) defining each link
-    d1 = np.abs((p1_end[0] - p1_start[0])*obstacle[0] - (p1_end[1] - p1_start[1])*obstacle[1] + p1_end[0]*p1_start[1] - p1_end[1]*p1_start[0]) / np.linalg.norm(p1_end - p1_start)
-
-    d2 = np.abs((p2_end[0] - p2_start[0])*obstacle[0] - (p2_end[1] - p2_start[1])*obstacle[1] + p2_end[0]*p2_start[1] - p2_end[1]*p2_start[0]) / np.linalg.norm(p2_end - p2_start)
+    d1 = dist_point_to_segment(obstacle, p1_start, p1_end)
+    d2 = dist_point_to_segment(obstacle, p2_start, p2_end)
 
     return [d1, d2]
+
+
+if __name__ == "__main__":
+    target = np.array([0.36387244, 1.63541161])
+    obstacle = np.array([1.68484258, 0.38647358])
+
+    print(dist_obstacle_to_links(obstacle, [ca.pi/6, -ca.pi/6], [1.0, 1.0]))

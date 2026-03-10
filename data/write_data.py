@@ -43,7 +43,8 @@ def generate_obstacle_point(theta, a):
         x = np.random.uniform(-2.0, 2.0)
         y = np.random.uniform(0.0, 2.0)
 
-        if point_in_workspace(x, y) and min(dist_obstacle_to_links((x, y), theta, a)) > 0.1: # ensure obstacle is not too close to the robot links
+        min_dist_obstacle_links = min(dist_obstacle_to_links((x, y), theta, a))
+        if point_in_workspace(x, y) and (min_dist_obstacle_links - (0.1 + 0.1) > 0): # ensure obstacle is not too close to the robot links
             return (x, y)
 
 def generate_data(mpc, target, obstacle, a):
