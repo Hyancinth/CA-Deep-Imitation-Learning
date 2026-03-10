@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, ImageMagickWriter
 import do_mpc
+import h5py as h5
+import pathlib as Path
+
 from utils.utils import robot_motion
 from utils.modelling import link_points
 

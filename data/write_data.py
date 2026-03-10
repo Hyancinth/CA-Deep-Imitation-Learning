@@ -1,5 +1,6 @@
 import numpy as np
 import h5py as h5
+from pathlib import Path
 
 from utils.utils import dist_obstacle_to_links, fk, point_in_workspace
 
@@ -29,7 +30,7 @@ def generate_goal_point():
     """
     while True:
         x = np.random.uniform(-2.0, 2.0)
-        y = np.random.uniform(-2.0, 0.0)
+        y = np.random.uniform(0.0, 2.0)
 
         if point_in_workspace(x, y):
             return (x, y)
@@ -40,7 +41,7 @@ def generate_obstacle_point(theta, a):
     """
     while True:
         x = np.random.uniform(-2.0, 2.0)
-        y = np.random.uniform(-2.0, 0.0)
+        y = np.random.uniform(0.0, 2.0)
 
         if point_in_workspace(x, y) and min(dist_obstacle_to_links((x, y), theta, a)) > 0.1: # ensure obstacle is not too close to the robot links
             return (x, y)
@@ -103,9 +104,14 @@ def write_data_to_file(data, filename):
         'run_{i}'
             data
     """
-    f = h5.File(filename, 'a')
+    base_dir = Path(__file__).resolve().parent
+    filepath = base_dir.parent/"model"/"data"/filename
+    filepath.parent.mkdir(parents=True, exist_ok=True) # create data directory if it doesn't exist
+
+    f = h5.File(filepath, 'a')
     # the data should have an entry specifying the run number for group creation
     grp = f.require_group(f"run_{data['run_number']}")
+    grp.attrs['run_number'] = data['run_number'] # store run number as group attribute for easy access
     for key, value in data.items():
         if key != 'run_number':
             dset = grp.create_dataset(key, data=value)

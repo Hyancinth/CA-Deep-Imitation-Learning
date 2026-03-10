@@ -1,4 +1,5 @@
 import numpy as np
+import casadi as ca
 
 """
 This script generates data from the MPC controller and saves it to a file for later use in training the imitation learning model.
@@ -14,25 +15,23 @@ t_wall_total: total time taken by the MPC solver to find a solution at each step
 how to run: python -m scripts.generate_data
 """
 
-# test data generation
 from data.write_data import generate_goal_point, generate_obstacle_point, generate_data, write_data_to_file
-from mpc.simpleMPC import mpc_controller
-
-
-import casadi as ca
+from mpc.simpleMPC2 import mpc_controller
 
 if __name__ == "__main__":
     
     x0 = np.array([ca.pi/6, -ca.pi/6])
     a = np.array([1.0, 1.0])
 
+    mpc, simulator, p_template, p_template_sim = mpc_controller()
+
     num_runs = 2
-    for run in range(num_runs):
+    run = 0
+
+    while run < num_runs:
         target = generate_goal_point()
         obstacle = generate_obstacle_point(x0, a)
         print(f"Run {run}: Target: {target}, Obstacle: {obstacle}")
-
-        mpc, simulator = mpc_controller(target=target, obstacle=obstacle)
 
         simulator.reset_history()
         mpc.reset_history()
@@ -42,11 +41,25 @@ if __name__ == "__main__":
 
         mpc.set_initial_guess()
 
-        for i in range(20): 
+        for i in range(100): 
             u0 = mpc.make_step(x0)
             x0 = simulator.make_step(u0)
+            if not mpc.solver_stats["success"]:
+                print(f"Run {run} failed at step {i}. Retrying with a new target and obstacle.")
+                break # exit the loop and retry with a new target and obstacle if MPC solver fails
         
-        data = generate_data(mpc, target, obstacle, a)
-        data['run_number'] = run # add run number to data for tracking
+        if mpc.solver_stats["success"]:
+            # also need to check if the final state is close enough to the target to consider it a successful run for data generation
+            final_state = mpc.data['_x', 'theta1'][-1][0], mpc.data['_x', 'theta2'][-1][0]
+            distance_to_target = np.linalg.norm(np.array(final_state) - np.array(target))
+            if distance_to_target > 0.1:  # Adjust the threshold as needed
+                print(f"Run {run} did not reach the target. Retrying with a new target and obstacle.")
+                continue
+            
+            data = generate_data(mpc, target, obstacle, a)
+            data['run_number'] = run # add run number to data for tracking
 
-        write_data_to_file(data, 'training_data_test.h5')
+            write_data_to_file(data, 'training_data_test_1.h5')
+            run += 1 # only increment run if MPC solver succeeds
+        # else:
+        #     print(f"Run {run} failed to find a solution. Retrying with a new target and obstacle.")
