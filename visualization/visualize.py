@@ -2,8 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, ImageMagickWriter
 import do_mpc
-from utils import robot_motion
-from modelling import link_points
+import h5py as h5
+import pathlib as Path
+
+from utils.utils import robot_motion
+from utils.modelling import link_points
 
 def visualize(mpc, simulator, target=np.array([1.5, 0.5]), obstacle=np.array([1.0, 0.8]), obs_radius=0.1, joint_radius=0.1):
     """
@@ -90,7 +93,7 @@ def visualize(mpc, simulator, target=np.array([1.5, 0.5]), obstacle=np.array([1.
             circle.remove()
         circles.clear()
 
-        mpc_circle_ee = plt.Circle((x2_mpc[i], y2_mpc[i]), joint_radius, color='g', alpha=0.5)
+        mpc_circle_ee = plt.Circle((x2_mpc[i], y2_mpc[i]), joint_radius, color='m', alpha=0.5)
         mpc_circle_j1 = plt.Circle((x1_mpc[i], y1_mpc[i]), joint_radius, color='g', alpha=0.5)
         ax1.add_patch(mpc_circle_ee)
         ax1.add_patch(mpc_circle_j1)
