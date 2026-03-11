@@ -183,8 +183,11 @@ if __name__ == "__main__":
 
         # target = np.array([0.36387244, 1.63541161])
         # obstacle = np.array([1.68484258, 0.38647358])
-        target = np.array([0.99768906, 0.01038623])
-        obstacle = np.array([-0.6890993,  0.2282486])
+        # target = np.array([0.99768906, 0.01038623])
+        # obstacle = np.array([-0.6890993,  0.2282486])
+
+        target = np.array([-0.08462886,  1.66199595])
+        obstacle = np.array([1.24988987, 0.20855871])
 
         # update parameters
         p_template['_p', 0, 'target'] = target.reshape(2,1)
@@ -213,3 +216,4 @@ if __name__ == "__main__":
         end_ee_distance_to_target = np.linalg.norm(np.array(end_ee_pos[2:4]) - target)
         print("end effector distance to target: ", end_ee_distance_to_target)
         anim = visualize(mpc, simulator, target, obstacle)
+        # save_animation(anim, f'jerky_motion.gif')

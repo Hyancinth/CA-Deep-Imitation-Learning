@@ -53,6 +53,8 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
         fig = plt.figure(figsize=(16, 9))
         num_plot_rows, num_plot_cols = 4, 2
 
+        plt.title(f'Run {run_i}')
+
         ax1 = plt.subplot2grid((num_plot_rows, num_plot_cols), (0, 0), rowspan=4)
         ax3 = plt.subplot2grid((num_plot_rows, num_plot_cols), (0, 1))
         ax4 = plt.subplot2grid((num_plot_rows, num_plot_cols), (1, 1))
@@ -145,5 +147,5 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
 if __name__ == "__main__":
     import os
     print(os.getcwd())
-    h5_path = "model/data/training_data_test_4.h5"
+    h5_path = "model/data/data_311_01_30.h5"
     visualize_h5(h5_path)
