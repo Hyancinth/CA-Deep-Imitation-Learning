@@ -93,7 +93,7 @@ def visualize(mpc, simulator, target=np.array([1.5, 0.5]), obstacle=np.array([1.
             circle.remove()
         circles.clear()
 
-        mpc_circle_ee = plt.Circle((x2_mpc[i], y2_mpc[i]), joint_radius, color='g', alpha=0.5)
+        mpc_circle_ee = plt.Circle((x2_mpc[i], y2_mpc[i]), joint_radius, color='m', alpha=0.5)
         mpc_circle_j1 = plt.Circle((x1_mpc[i], y1_mpc[i]), joint_radius, color='g', alpha=0.5)
         ax1.add_patch(mpc_circle_ee)
         ax1.add_patch(mpc_circle_j1)

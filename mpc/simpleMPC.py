@@ -8,7 +8,7 @@ import matplotlib as mpl
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
 
 from utils.modelling import link_points
-from utils.utils import fk, jacobian, dist_obstacle_to_links
+from utils.utils import fk, jacobian, dist_to_links
 from visualization.visualize import visualize, save_animation
 
 def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1, target=np.array([1.5, 1]), obstacle=np.array([1.0, 0.8])):
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     init_theta = np.array([ca.pi/6, -ca.pi/6])
     a = np.array([1.0, 1.0])
 
-    dist = dist_obstacle_to_links(obstacle, init_theta, a)
+    dist = dist_to_links(obstacle, init_theta, a)
     sphere_dist = dist - (0.1 + 0.1) # distance from obstacle to robot links minus radius of obstacle and robot joints
     if sphere_dist < 0.1:
         print(f"Warning: Obstacle is too close to the robot's initial configuration: {sphere_dist:.3f}m from the links. Consider moving the obstacle or adjusting the initial joint angles.")

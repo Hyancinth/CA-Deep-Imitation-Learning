@@ -124,7 +124,7 @@ def point_in_workspace(x, y, a = [1.0, 1.0]):
     return abs(a1 - a2) <= dist <= (a1 + a2)
 
 def dist_point_to_segment(point, seg_start, seg_end):
-    """Distance from a point to a line segment, compatible with both numpy and CasADi"""
+    """Distance from a point to a line segment"""
     point = np.array(point).flatten()
     seg_start = np.array(seg_start).flatten()
     seg_end = np.array(seg_end).flatten()
@@ -132,16 +132,16 @@ def dist_point_to_segment(point, seg_start, seg_end):
     seg_vec = seg_end - seg_start
     seg_len_sq = np.dot(seg_vec, seg_vec)
     
-    t = np.dot(point - seg_start, seg_vec) / seg_len_sq
-    t = np.clip(t, 0, 1)
+    t = np.dot(point - seg_start, seg_vec) / seg_len_sq # project point onto the line
+    t = np.clip(t, 0, 1) # restrict t to the segment
     
-    closest = seg_start + t * seg_vec
+    closest = seg_start + t * seg_vec # closest point on the segment to the point
     return np.linalg.norm(point - closest)
 
 
-def dist_obstacle_to_links(obstacle, theta, a):
+def dist_to_links(point, theta, a):
     """
-    Compute the distance from the obstacle to each link segment of the robot.
+    Compute the distance from the point to each link segment of the robot.
     """
     theta1 = theta[0]
     theta2 = theta[1]
@@ -158,8 +158,8 @@ def dist_obstacle_to_links(obstacle, theta, a):
     p2_end   = np.array([a1 * np.cos(theta1) + a2 * np.cos(theta1 + theta2),
                           a1 * np.sin(theta1) + a2 * np.sin(theta1 + theta2)])
 
-    d1 = dist_point_to_segment(obstacle, p1_start, p1_end)
-    d2 = dist_point_to_segment(obstacle, p2_start, p2_end)
+    d1 = dist_point_to_segment(point, p1_start, p1_end)
+    d2 = dist_point_to_segment(point, p2_start, p2_end)
 
     return [d1, d2]
 
@@ -168,4 +168,4 @@ if __name__ == "__main__":
     target = np.array([0.36387244, 1.63541161])
     obstacle = np.array([1.68484258, 0.38647358])
 
-    print(dist_obstacle_to_links(obstacle, [ca.pi/6, -ca.pi/6], [1.0, 1.0]))
+    print(dist_to_links(obstacle, [ca.pi/6, -ca.pi/6], [1.0, 1.0]))

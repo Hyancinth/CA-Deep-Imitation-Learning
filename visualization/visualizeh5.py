@@ -7,6 +7,9 @@ from utils.modelling import link_points
 from utils.utils import robot_motion_from_data
 
 def get_data_from_h5(h5_path, run_i):
+    """
+    Extract data for a specific run from the h5 file and return it as numpy arrays
+    """
     with h5.File(h5_path, 'r') as f:
         run_key = "run_" + str(run_i)
         run_data = f[run_key]
@@ -14,10 +17,12 @@ def get_data_from_h5(h5_path, run_i):
         # extract data
         theta1 = run_data['theta1'][:]
         theta2 = run_data['theta2'][:]
-        obstacle = np.array([float(run_data['obstacle_x'][()]),
-                             float(run_data['obstacle_y'][()])])
-        target   = np.array([float(run_data['target_x'][()]),
-                             float(run_data['target_y'][()])])
+        if run_data['target_x'].shape == (): # handle scalar case (old data format)
+            target = np.array([float(run_data['target_x'][()]), float(run_data['target_y'][()])])
+            obstacle = np.array([float(run_data['obstacle_x'][()]), float(run_data['obstacle_y'][()])])
+        else:
+            obstacle = np.array([float(run_data['obstacle_x'][0]), float(run_data['obstacle_y'][0])])
+            target   = np.array([float(run_data['target_x'][0]), float(run_data['target_y'][0])])
         u1 = run_data['u1'][:]
         u2 = run_data['u2'][:]
 
@@ -30,8 +35,6 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
     """
     with h5.File(h5_path, 'r') as f:
         num_runs = len(f.keys())
-        # for testing set num_runs = 1 to only visualize the first run
-        num_runs = 1
     f.close()
     
     for run_i in range(num_runs):
@@ -45,7 +48,7 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
         y2 = robot_motion["y2"]
 
         n_steps = len(theta1)
-        time = np.arange(n_steps) * 0.1 # assuming Ts = 0.1s
+        time = np.arange(n_steps)
 
         fig = plt.figure(figsize=(16, 9))
         num_plot_rows, num_plot_cols = 4, 2
@@ -68,7 +71,7 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
             if ax != ax6:
                 ax.xaxis.set_ticklabels([])     
 
-        # plot full time-series in the right column (static background)
+        # plot full time-series in the right column (static)
         ax3.plot(time, theta1, color='#1f77b4')
         ax4.plot(time, theta2, color='#ff7f0e')
         ax5.plot(time, u1,     color='#1f77b4')
@@ -83,23 +86,21 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
 
         ax1.hlines(0, -2.5, 2.5, colors='k')
 
-        obs_circle = plt.Circle((obstacle[0], obstacle[1]), obs_radius,
-                             color='r', alpha=0.5)
+        obs_circle = plt.Circle((obstacle[0], obstacle[1]), obs_radius, color='r', alpha=0.5)
         ax1.add_patch(obs_circle)
 
-        target_circle = plt.Circle((target[0], target[1]), 0.05,
-                                    color='b', alpha=0.5)
+        target_circle = plt.Circle((target[0], target[1]), 0.05, color='b', alpha=0.5)
         ax1.add_patch(target_circle)
 
             
         # animated vertical cursor lines
-        vlines = [ax.axvline(0, color='k', lw=1, ls='--')
-                for ax in [ax3, ax4, ax5, ax6]]
+        vlines = [ax.axvline(0, color='k', lw=1, ls='--') for ax in [ax3, ax4, ax5, ax6]]
         
         link1_line, = ax1.plot([], [], 'o-', lw=4, color='#1f77b4')
         link2_line, = ax1.plot([], [], 'o-', lw=4, color='#ff7f0e')
 
         circles = []
+        animations = []
 
         def update(i):
             # clear previous dynamic circles
@@ -135,9 +136,14 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
         fig.align_ylabels()
         fig.tight_layout()
         plt.show()
+        
+        animations.append(anim)
+        del anim
 
-        return anim
+    return animations
 
 if __name__ == "__main__":
-    h5_path = r"C:\Users\ethan\OneDrive\Desktop\CA-Deep-Imitation-Learning\model\data\training_data_test_1.h5"
+    import os
+    print(os.getcwd())
+    h5_path = "model/data/training_data_test_4.h5"
     visualize_h5(h5_path)

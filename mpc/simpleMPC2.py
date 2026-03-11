@@ -9,7 +9,7 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
 
 import mpc
 from utils.modelling import link_points
-from utils.utils import fk, jacobian, dist_obstacle_to_links
+from utils.utils import fk, jacobian, dist_to_links
 from visualization.visualize import visualize, save_animation
 
 """
@@ -49,9 +49,8 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1):
         't_step': Ts, 
         'store_full_solution': True,
         # 'nlpsol_opts': {'ipopt.max_iter': 100}
-        'nlpsol_opts': {'ipopt.max_cpu_time': 0.20}, # set maximum solve time for each MPC step (in seconds)
-        'ipopt.print_level': 0,
-        'print_time': 0
+        'nlpsol_opts': {'ipopt.max_cpu_time': 0.20, 'ipopt.print_level': 0,   # No IPOPT output
+        'print_time': 0, }, # set maximum solve time for each MPC step (in seconds)
     }
 
     mpc.set_param(**setup_mpc)
@@ -71,9 +70,9 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1):
     x2 = pos[2]
     y2 = pos[3]
 
-    ee_dist_to_obs = ca.sqrt((x2 - obstacle[0])**2 + (y2 - obstacle[1])**2)
-    ee_dist_to_target = ca.sqrt((x2 - target[0])**2 + (y2 - target[1])**2)
-    j1_dist_to_obs = ca.sqrt((x1 - obstacle[0])**2 + (y1 - obstacle[1])**2)
+    ee_dist_to_obs = (x2 - obstacle[0])**2 + (y2 - obstacle[1])**2
+    ee_dist_to_target = (x2 - target[0])**2 + (y2 - target[1])**2
+    j1_dist_to_obs = (x1 - obstacle[0])**2 + (y1 - obstacle[1])**2
 
     # Modeling
     obs_radius = 0.1
@@ -92,11 +91,11 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1):
     beta = 2 # weight for repulsion function
 
     epsilon = 1e-6 # prevent division by zero
-    mu = ca.exp(-beta*(ee_dist_to_obs**2/(ee_dist_to_target**2 + epsilon)))
+    mu = ca.exp(-beta*(ee_dist_to_obs/(ee_dist_to_target + epsilon)))
     
     # cost = (model.u['u1']**2 + model.u['u2']**2) + gamma*mu**2
     # mterm = 200.0 * ee_dist_to_target**2   
-    cost = ee_dist_to_target**2 + (model.u['u1']**2 + model.u['u2']**2) + gamma*mu**2
+    cost = ee_dist_to_target + (model.u['u1']**2 + model.u['u2']**2) + gamma*mu**2
     mterm = ca.DM.zeros(1,1)
     mpc.set_objective(lterm=cost, mterm=mterm)
     mpc.set_rterm(u1=1e-6, u2=1e-6) # the cost function should penalize control inputs already
@@ -113,8 +112,8 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1):
     # zeta_2 = alpha**2 *(ee_dist_to_obs**2 - (obs_radius + joint_radius + d_)**2) # SSM constraint for end effector
 
     min_zeta = 1e-4 # 
-    zeta_1 = ca.fmax(alpha**2 * (j1_dist_to_obs**2 - (obs_radius + joint_radius + d_)**2), min_zeta)
-    zeta_2 = ca.fmax(alpha**2 * (ee_dist_to_obs**2 - (obs_radius + joint_radius + d_)**2), min_zeta)
+    zeta_1 = ca.fmax(alpha**2 * (j1_dist_to_obs - (obs_radius + joint_radius + d_)), min_zeta)
+    zeta_2 = ca.fmax(alpha**2 * (ee_dist_to_obs - (obs_radius + joint_radius + d_)), min_zeta)
 
     v1 = v_j1[0]**2 + v_j1[1]**2 # velocity magnitude squared of joint 1
     v_ee = v_j2[0]**2 + v_j2[1]**2 # velocity magnitude squared of end effector
@@ -130,7 +129,7 @@ def mpc_controller(a1 = 1.0, a2 = 1.0, Ts=0.1):
         else:
             v_point = v_ee # approximate velocity magnitude of points along link 2 using velocity magnitude of end effector
 
-        zeta_point = ca.fmax(alpha**2 * (point_dist_to_obs**2 - (obs_radius + joint_radius + d_)**2), min_zeta)
+        zeta_point = ca.fmax(alpha**2 * (point_dist_to_obs - (obs_radius + joint_radius + d_)), min_zeta)
         mpc.set_nl_cons(f'ssm_point_{id}', v_point - zeta_point, ub = 0)
 
     # Ground constraint (prevent robot from hitting the ground)
@@ -184,8 +183,8 @@ if __name__ == "__main__":
 
         # target = np.array([0.36387244, 1.63541161])
         # obstacle = np.array([1.68484258, 0.38647358])
-        target = np.array([-1.309271880675988, 0.5348810699093689])
-        obstacle = np.array([-1.5113456472181412, 0.83831610332521])
+        target = np.array([0.99768906, 0.01038623])
+        obstacle = np.array([-0.6890993,  0.2282486])
 
         # update parameters
         p_template['_p', 0, 'target'] = target.reshape(2,1)
@@ -206,4 +205,11 @@ if __name__ == "__main__":
             u0 = mpc.make_step(x0)
             x0 = simulator.make_step(u0)
         
+        print("distance to target: ", np.linalg.norm(np.array([mpc.data['_x', 'theta1'][-1][0], mpc.data['_x', 'theta2'][-1][0]]) - target))
+
+        print(mpc.data['_x', 'theta1'][-1][0], mpc.data['_x', 'theta2'][-1][0])
+        end_ee_pos = fk([mpc.data['_x', 'theta1'][-1][0], mpc.data['_x', 'theta2'][-1][0]], a)
+
+        end_ee_distance_to_target = np.linalg.norm(np.array(end_ee_pos[2:4]) - target)
+        print("end effector distance to target: ", end_ee_distance_to_target)
         anim = visualize(mpc, simulator, target, obstacle)
