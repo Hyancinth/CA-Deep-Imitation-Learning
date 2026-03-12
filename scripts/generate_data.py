@@ -65,7 +65,7 @@ def run_mpc_controller(mpc, simulator, p_template, p_template_sim, target, obsta
 if __name__ == "__main__":
     mpc, simulator, p_template, p_template_sim = mpc_controller()
 
-    num_runs = 30
+    num_runs = 2
     run = 0
 
     while run < num_runs:
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         if success:
             print(f"Run {run+1}/{num_runs} successful. Saving data...")
             data['run_number'] = run
-            write_data_to_file(data, 'data_311_01_30.h5')
+            write_data_to_file(data, 'test_data_1.h5')
             run += 1
         else:
             print(f"Run {run+1} failed. Retrying with a new target and obstacle...")
