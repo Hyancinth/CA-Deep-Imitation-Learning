@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 X_COLUMNS = [
     'theta1',
@@ -57,7 +59,27 @@ def generate_input_output_data(data):
     
     return np.vstack(x), np.vstack(y)
 
-    
+def scale_features(x_train, x_test):
+    """
+    Scale input features
+
+    Returns:
+    - x_train_scaled (numpy array): scaled training input features
+    - x_test_scaled (numpy array): scaled testing input features
+    """
+
+    scaler = StandardScaler()
+    x_train_scaled = scaler.fit_transform(x_train)
+    x_test_scaled = scaler.transform(x_test)
+
+    save_dir = "model/scalers/"
+
+    scaler_filename = save_dir + "input_scaler.pkl"
+    joblib.dump(scaler, scaler_filename)
+
+    return x_train_scaled, x_test_scaled
+
+
 if __name__ == "__main__":
     from data.load_data import load_data_from_file
     file_path = "model/data/test_data_1.h5"
