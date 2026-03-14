@@ -20,12 +20,13 @@ def create_data_loaders(x_train, y_train, x_test, y_test, batch_size=32):
     
     return train_loader, test_loader
 
-def train_model(model: nn.Module, train_loader, test_loader, num_epochs=20, learning_rate=0.01):
+def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, learning_rate=0.01):
     # define loss function and optimizer
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    losses = torch.zeros(num_epochs)
+    train_losses = torch.zeros(num_epochs)
+    test_losses = torch.zeros(num_epochs)
 
     # training loop
     for epoch in range(num_epochs):
@@ -44,7 +45,7 @@ def train_model(model: nn.Module, train_loader, test_loader, num_epochs=20, lear
             train_loss += loss.item() * x_batch.size(0)
 
         train_loss /= len(train_loader.dataset)
-        losses[epoch] = train_loss
+        train_losses[epoch] = train_loss
 
         # evaluate on test set
         model.eval()
@@ -56,5 +57,8 @@ def train_model(model: nn.Module, train_loader, test_loader, num_epochs=20, lear
                 test_loss += loss.item() * x_batch.size(0)
 
         test_loss /= len(test_loader.dataset)
+        test_losses[epoch] = test_loss
 
         print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}")
+
+    return model, train_losses, test_losses
