@@ -1,4 +1,5 @@
 import h5py
+import sys
 from collections import defaultdict
 
 def load_data_from_file(file_path):
@@ -19,7 +20,8 @@ def load_data_from_file(file_path):
     return data
 
 if __name__ == "__main__":
-    file_path = "training_data_test.h5"
+    # file_path = "training_data_test.h5"
+    file_path = sys.argv[1]
     data = load_data_from_file(file_path)
     
     for run, datasets in data.items():
