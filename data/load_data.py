@@ -16,10 +16,13 @@ def load_data_from_file(file_path):
                     data[run][dataset] = dset[()]
                 else:
                     data[run][dataset] = dset[:] 
+    # print u1 dataset for run_0 to verify it was loaded correctly
+    if 'run_0' in data and 'u1' in data['run_0']:
+        print("u1 dataset for run_0:", data['run_0']['u1'])
     return data
 
 if __name__ == "__main__":
-    file_path = "training_data_test.h5"
+    file_path = "model/data/test_data_1.h5"
     data = load_data_from_file(file_path)
     
     for run, datasets in data.items():
