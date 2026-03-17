@@ -20,10 +20,10 @@ def create_data_loaders(x_train, y_train, x_test, y_test, batch_size=32):
     
     return train_loader, test_loader
 
-def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, learning_rate=0.01):
+def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, learning_rate=0.001):
     # define loss function and optimizer
     loss_function = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) # use small learning rate for adam
 
     train_losses = torch.zeros(num_epochs)
     test_losses = torch.zeros(num_epochs)
