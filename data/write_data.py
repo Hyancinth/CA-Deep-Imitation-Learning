@@ -134,7 +134,7 @@ def write_data_to_file(data, filename):
     # print file structure for verification
     print(f"Data written to {filename}. Current file structure:")
 
-    print_file_structure(f)
+    # print_file_structure(f)
 
     f.close()
     

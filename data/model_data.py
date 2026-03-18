@@ -40,7 +40,7 @@ def split_test_train(data, test_size=0.2):
 
     return train_data, test_data
 
-def generate_input_output_data(data):
+def generate_input_output_data(data, exclude_columns = None):
     """
     Convert data dict to array of input features (X) and outputs (Y)
 
@@ -48,11 +48,16 @@ def generate_input_output_data(data):
     - x (numpy array): array of input features for all runs, shape (num_samples, num_features)
     - y (numpy array): array of outputs for all runs, shape (num_samples, num_outputs)
     """
+    if not exclude_columns:
+        exclude_columns = []
+    
+    filter_x_columns = [col for col in X_COLUMNS if col not in exclude_columns]
+
     x = []
     y = []
     for run in data.keys():
         run_data = data[run]
-        x_run = np.column_stack([run_data[col] for col in X_COLUMNS])
+        x_run = np.column_stack([run_data[col] for col in filter_x_columns])
         y_run = np.column_stack([run_data[col] for col in Y_COLUMNS])
 
         x.append(x_run)

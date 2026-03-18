@@ -12,11 +12,13 @@ from utils.utils import fk, dist_to_links
 from visualization.visualize_model import plot_train_test_losses, plot_ee_trajectories
 
 
-def train_and_evaluate_model(file_path):
+def train_and_evaluate_model(file_path, exclude_columns = None):
     data = load_data_from_file(file_path)
     train_data, test_data = split_test_train(data)
-    x_train, y_train = generate_input_output_data(train_data)
-    x_test, y_test = generate_input_output_data(test_data)
+    if not exclude_columns:
+        exclude_columns = []
+    x_train, y_train = generate_input_output_data(train_data, exclude_columns)
+    x_test, y_test = generate_input_output_data(test_data, exclude_columns)
     x_train_scaled, x_test_scaled, scaler_filename, timestamp = scale_features(x_train, x_test)
 
     # create data loaders
@@ -28,7 +30,7 @@ def train_and_evaluate_model(file_path):
 
     return model, train_losses, test_losses, scaler_filename, timestamp
 
-def get_hidden_data(file_path):
+def get_hidden_data(file_path, exclude_columns = None):
     data = load_data_from_file(file_path)
     theta1_init = data['run_0']['theta1'][0]
     theta2_init = data['run_0']['theta2'][0]
@@ -36,7 +38,9 @@ def get_hidden_data(file_path):
     obstacle = np.array([data['run_0']['obstacle_x'][0], data['run_0']['obstacle_y'][0]])
     theta1 = data['run_0']['theta1'][:] # for later when we want to compare the predicted and ground truth trajectories
     theta2 = data['run_0']['theta2'][:]
-    x, y = generate_input_output_data(data)
+    if not exclude_columns:
+        exclude_columns = []
+    x, y = generate_input_output_data(data, exclude_columns)
     # x_scaled, _, _ = scale_features(x, x) # scale the data using the same scaler that was used for training
 
     data = {
@@ -134,6 +138,8 @@ if __name__ == "__main__":
     # change these to appropriate file 
     training_file_path = "model/data/data_313_01_30.h5"
     hidden_file_path = "model/data/hidden_test_data.h5"
+
+    exclude_columns = []
 
     # load the training data and train the model
     model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path)
