@@ -136,7 +136,7 @@ if __name__ == "__main__":
     7. Store store both the joint velocities (u1, u2) and the joint angles (theta1, theta2) at each time step for both the model predictions and the ground truth from the dataset
     """
     # change these to appropriate file 
-    training_file_path = "model/data/data_313_01_30.h5"
+    training_file_path = "model/data/data_317_01_100.h5"
     hidden_file_path = "model/data/hidden_test_data.h5"
 
     exclude_columns = []
