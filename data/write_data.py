@@ -4,26 +4,6 @@ from pathlib import Path
 
 from utils.utils import dist_to_links, fk, point_in_workspace
 
-X_COLUMNS = [
-    'theta1',
-    'theta2',
-    'target_x',
-    'target_y',
-    'obstacle_x',
-    'obstacle_y',
-    'ee_dist_to_target',
-    'ee_dist_to_obstacle',
-    'min_dist_obstacle_link_1',
-    'min_dist_obstacle_link_2',
-    'u1_prev',
-    'u2_prev'
-]
-
-Y_COLUMNS = [
-    'u1', 
-    'u2'
-]
-
 def generate_goal_point(x0, a):
     """
     Generate a random goal point within the workspace of the robot
@@ -122,6 +102,8 @@ def generate_data(mpc, target, obstacle, a):
         'obstacle_y': np.full_like(theta1, obstacle[1]),
         'min_dist_obstacle_link_1': min_dist_obstacle_link_1,
         'min_dist_obstacle_link_2': min_dist_obstacle_link_2,
+        'ee_dist_to_target': ee_dist_to_target,
+        'ee_dist_to_obstacle': ee_dist_to_obstacle,
         'u1_prev': u1_prev,
         'u2_prev': u2_prev,
         'u1': u1,

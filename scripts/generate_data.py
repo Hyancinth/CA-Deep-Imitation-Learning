@@ -64,8 +64,8 @@ def run_mpc_controller(mpc, simulator, p_template, p_template_sim, target, obsta
 
 if __name__ == "__main__":
     mpc, simulator, p_template, p_template_sim = mpc_controller()
-    
-    num_runs = 30
+
+    num_runs = 1
     run = 0
 
     while run < num_runs:

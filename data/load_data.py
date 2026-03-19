@@ -17,6 +17,9 @@ def load_data_from_file(file_path):
                     data[run][dataset] = dset[()]
                 else:
                     data[run][dataset] = dset[:] 
+    # print u1 dataset for run_0 to verify it was loaded correctly
+    if 'run_0' in data and 'u1' in data['run_0']:
+        print("u1 dataset for run_0:", data['run_0']['u1'])
     return data
 
 if __name__ == "__main__":
