@@ -79,7 +79,7 @@ if __name__ == "__main__":
         if success:
             print(f"Run {run+1}/{num_runs} successful. Saving data...")
             data['run_number'] = run
-            write_data_to_file(data, 'data_317_01_100.h5') # change this to the appropriate file name
+            write_data_to_file(data, 'data_319_01_100.h5') # change this to the appropriate file name
             run += 1
         else:
             print(f"Run {run+1} failed. Retrying with a new target and obstacle...")
