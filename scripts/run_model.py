@@ -5,17 +5,32 @@ import joblib
 from datetime import datetime
 
 from data.load_data import load_data_from_file
-from data.model_data import split_test_train, generate_input_output_data, scale_features
+from data.model_data import split_test_train, generate_input_output_data, scale_features, X_COLUMNS, Y_COLUMNS
 from model.basicAnn import basicAnn
 from model.train_test_nn import create_data_loaders, train_model
 from utils.utils import fk, dist_to_links
 from visualization.visualize_model import plot_train_test_losses, plot_ee_trajectories
 
 
-def train_and_evaluate_model(file_path, exclude_columns = None):
+def train_and_evaluate_model(file_path, model, exclude_columns = None):
+    """
+    Train model on the dataset
+    
+    Args:
+        file_path (str): path to the dataset file
+        model (nn.Module): PyTorch model to be trained
+        exclude_columns (list of str): list of column names to exclude from the input features
+
+    Returns:
+    - model (nn.Module): trained PyTorch model
+    - train_losses (torch.Tensor): tensor containing the training loss at each epoch
+    - test_losses (torch.Tensor): tensor containing the test loss at each epoch
+    - scaler_filename (str): filename of the saved scaler used for feature scaling
+    - timestamp (str): timestamp corresponding to the saved model and scaler
+    """
     data = load_data_from_file(file_path)
     train_data, test_data = split_test_train(data)
-    if not exclude_columns:
+    if exclude_columns is None:
         exclude_columns = []
     x_train, y_train = generate_input_output_data(train_data, exclude_columns)
     x_test, y_test = generate_input_output_data(test_data, exclude_columns)
@@ -25,12 +40,22 @@ def train_and_evaluate_model(file_path, exclude_columns = None):
     train_loader, test_loader = create_data_loaders(x_train_scaled, y_train, x_test_scaled, y_test)
 
     # initialize model and train
-    model = basicAnn()
-    model, train_losses, test_losses = train_model(model, train_loader, test_loader)
+    nn = model
+    model, train_losses, test_losses = train_model(nn, train_loader, test_loader)
 
     return model, train_losses, test_losses, scaler_filename, timestamp
 
 def get_hidden_data(file_path, exclude_columns = None):
+    """
+    Get data from the hidden dataset for evaluating the trained model
+
+    Args:
+        file_path (str): path to the hidden dataset file
+        exclude_columns (list of str): list of column names to exclude from the input features
+
+    Returns:
+    - data (dict): dictionary containing data from the hidden dataset
+    """
     data = load_data_from_file(file_path)
     theta1_init = data['run_0']['theta1'][0]
     theta2_init = data['run_0']['theta2'][0]
@@ -38,7 +63,7 @@ def get_hidden_data(file_path, exclude_columns = None):
     obstacle = np.array([data['run_0']['obstacle_x'][0], data['run_0']['obstacle_y'][0]])
     theta1 = data['run_0']['theta1'][:] # for later when we want to compare the predicted and ground truth trajectories
     theta2 = data['run_0']['theta2'][:]
-    if not exclude_columns:
+    if exclude_columns is None:
         exclude_columns = []
     x, y = generate_input_output_data(data, exclude_columns)
     # x_scaled, _, _ = scale_features(x, x) # scale the data using the same scaler that was used for training
@@ -58,37 +83,87 @@ def get_hidden_data(file_path, exclude_columns = None):
     return data
 
 def compute_distances(theta, target, obstacle, a):
+    """
+    Compute various distances and relative positions needed for feature construction
+
+    Args:
+        theta (numpy array): array containing the joint angles [theta1, theta2]
+        target (numpy array): array containing the target position [target_x, target_y]
+        obstacle (numpy array): array containing the obstacle position [obstacle_x, obstacle_y]
+        a (numpy array): array containing the link lengths [a1, a2]
+
+    Returns:
+    - ee_dist_to_target (float): distance from end-effector to target
+    - ee_dist_to_obstacle (float): distance from end-effector to obstacle
+    - dist_obstacles_links (list of float): list containing the minimum distance from the obstacle to each of the robot links
+    - ee_dx_target (float): x distance from end-effector to target
+    - ee_dy_target (float): y distance from end-effector to target
+    """
     x1, y1, x2, y2 = fk(theta, a)
     ee_pos = np.array([x2, y2])
     ee_dist_to_target = np.linalg.norm(ee_pos - target)
     ee_dist_to_obstacle = np.linalg.norm(ee_pos - obstacle)
     dist_obstacles_links = dist_to_links(obstacle, theta, a)
+    ee_dx_target = target[0] - ee_pos[0]
+    ee_dy_target = target[1] - ee_pos[1]
+    
+    return ee_dist_to_target, ee_dist_to_obstacle, dist_obstacles_links, ee_dx_target, ee_dy_target
 
-    return ee_dist_to_target, ee_dist_to_obstacle, dist_obstacles_links
+def build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns = None):
+    """
+    Build input feature array for the model
 
-def build_feature_vector(theta, target, obstacle, u_prev, a):
+    Args:
+        theta (numpy array): array containing the joint angles [theta1, theta2]
+        target (numpy array): array containing the target position [target_x, target_y]
+        obstacle (numpy array): array containing the obstacle position [obstacle_x, obstacle_y]
+        u_prev (numpy array): array containing the previous control inputs [u1_prev, u2_prev]
+            u_prev is no longer being used as a feature in the current model, but it is included here in case we want to use it in future iterations of the model. If not using it, simply pass in an array of zeros for u_prev and exclude 'u1_prev' and 'u2_prev' from the input features using the exclude_columns parameter
+        a (numpy array): array containing the link lengths [a1, a2]
+        exclude_columns (list of str): list of column names to exclude from the input features 
+    """
     theta1 = theta[0]
     theta2 = theta[1]
 
-    ee_dist_to_target, ee_dist_to_obstacle, dist_obstacles_links = compute_distances(theta, target, obstacle, a)
-    x = np.array([
-        theta1,
-        theta2,
-        target[0],
-        target[1],
-        obstacle[0],
-        obstacle[1],
-        ee_dist_to_target,
-        ee_dist_to_obstacle,
-        dist_obstacles_links[0],
-        dist_obstacles_links[1],
-        u_prev[0],
-        u_prev[1]
-    ])
+    if exclude_columns is None:
+        exclude_columns = []
+
+    ee_dist_to_target, ee_dist_to_obstacle, dist_obstacles_links, ee_dx_target, ee_dy_target = compute_distances(theta, target, obstacle, a)
+    
+    feature_dict = {
+        'theta1': theta1,
+        'theta2': theta2,
+        'target_x': target[0],
+        'target_y': target[1],
+        'obstacle_x': obstacle[0],
+        'obstacle_y': obstacle[1],
+        'ee_dist_to_target': ee_dist_to_target,
+        'ee_dist_to_obstacle': ee_dist_to_obstacle,
+        'min_dist_obstacle_link_1': dist_obstacles_links[0],
+        'min_dist_obstacle_link_2': dist_obstacles_links[1],
+        'u1_prev': u_prev[0],
+        'u2_prev': u_prev[1],
+        # 'ee_dx_target': ee_dx_target,
+        # 'ee_dy_target': ee_dy_target
+    }
+    
+
+    x = np.array([feature_dict[col] for col in feature_dict if col not in exclude_columns])
 
     return x
 
 def predict_control(model, x, scaler):
+    """
+    Get the model's predicted control input
+
+    Args:
+        model (nn.Module): trained PyTorch model
+        x (numpy array): input feature array for the current time step
+        scaler (sklearn scaler object): scaler used for feature scaling during training, used to scale the input features before feeding into the model
+    
+    Returns:
+    - u (numpy array): array containing the predicted control inputs [u1, u2]
+    """
     x_scaled = scaler.transform([x])
 
     x_tensor = torch.tensor(x_scaled, dtype=torch.float32)
@@ -96,11 +171,30 @@ def predict_control(model, x, scaler):
     with torch.no_grad():
         u = model(x_tensor).numpy()
 
+    u = np.clip(u, -3.0, 3.0)
     return u[0]
 
-def run_model(model, scaler, theta0, target, obstacle, a):
+def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None):
+    """
+    Run the trained model on hidden dataset to generate a predicted trajectory
+
+    Args:
+        model (nn.Module): trained PyTorch model
+        scaler (sklearn scaler object): scaler used for feature scaling during training, used to scale the input features before feeding into the model
+        theta0 (numpy array): array containing the initial joint angles [theta1_init, theta2_init]
+        target (numpy array): array containing the target position [target_x, target_y]
+        obstacle (numpy array): array containing the obstacle position [obstacle_x, obstacle_y]
+        a (numpy array): array containing the link lengths [a1, a2]
+        exclude_columns (list of str): list of column names to exclude from the input features
+    
+    Returns:
+    - ee_trajectory (numpy array): array containing the predicted end-effector trajectory, shape (num_time_steps, 2)
+    """
+    if exclude_columns is None:
+        exclude_columns = []
+
     dt = 0.1
-    num_steps = 100
+    num_steps = 100 # matches the number of time steps the MPC took
 
     theta = np.array(theta0)
     u_prev = np.array([0.0, 0.0])
@@ -108,7 +202,7 @@ def run_model(model, scaler, theta0, target, obstacle, a):
     ee_trajectory = []
 
     for step in range(num_steps):
-        x = build_feature_vector(theta, target, obstacle, u_prev, a)
+        x = build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns)
         u = predict_control(model, x, scaler)
 
         # update theta using euler integration
@@ -136,13 +230,15 @@ if __name__ == "__main__":
     7. Store store both the joint velocities (u1, u2) and the joint angles (theta1, theta2) at each time step for both the model predictions and the ground truth from the dataset
     """
     # change these to appropriate file 
-    training_file_path = "model/data/data_313_01_30.h5"
+    training_file_path = "model/data/data_317_01_100.h5"
     hidden_file_path = "model/data/hidden_test_data.h5"
 
-    exclude_columns = []
+    exclude_columns = ['u1_prev', 'u2_prev'] 
+    # exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
 
     # load the training data and train the model
-    model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path)
+    nn = basicAnn(input_size=len(X_COLUMNS) - len(exclude_columns), output_size=len(Y_COLUMNS))
+    model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path, nn, exclude_columns)
     plot_train_test_losses(train_losses, test_losses)
 
     # save state dictionary of the trained model
@@ -159,11 +255,14 @@ if __name__ == "__main__":
     target = data['goal']
     obstacle = data['obstacle']
     scaler = joblib.load(scaler_filename)
-    ee_trajectory_pred = run_model(model, scaler, theta0, target, obstacle, a)
+    # run model on hidden dataset and get predicted end effector trajectory
+    ee_trajectory_pred = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns)
 
+    # ground truth end effector trajectory
     ee_trajectory_gt = np.array([fk([data['theta1'][i], data['theta2'][i]], a)[2:4] for i in range(len(data['theta1']))])
 
     initial_robot_link = fk(theta0, a) # for drawing initial robot config in the plot
 
+    # plot the predicted and ground truth end-effector trajectories, along with the target and obstacle positions and the initial robot configuration
     plot_ee_trajectories(ee_trajectory_gt, ee_trajectory_pred, target, obstacle, initial_robot_link, a)
 

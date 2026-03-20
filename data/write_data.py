@@ -68,6 +68,8 @@ def generate_data(mpc, target, obstacle, a):
     ee_dist_to_obstacle = []
     min_dist_obstacle_link_1 = []
     min_dist_obstacle_link_2 = []
+    ee_dx_target = []
+    ee_dy_target = []
 
     # extract joint angles
     theta1 = mpc.data['_x', 'theta1'].flatten()
@@ -92,6 +94,9 @@ def generate_data(mpc, target, obstacle, a):
         dist_obstacles_links = dist_to_links(obstacle, [theta1[i], theta2[i]], a)
         min_dist_obstacle_link_1.append(dist_obstacles_links[0])
         min_dist_obstacle_link_2.append(dist_obstacles_links[1])
+        ee_dx_target.append(target[0] - ee_x)
+        ee_dy_target.append(target[1] - ee_y)
+
 
     return {
         'theta1': theta1,
@@ -107,7 +112,9 @@ def generate_data(mpc, target, obstacle, a):
         'u1_prev': u1_prev,
         'u2_prev': u2_prev,
         'u1': u1,
-        'u2': u2
+        'u2': u2,
+        'ee_dx_target': ee_dx_target,
+        'ee_dy_target': ee_dy_target
     }
     
 def write_data_to_file(data, filename):
