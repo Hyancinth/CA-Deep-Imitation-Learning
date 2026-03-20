@@ -5,14 +5,20 @@ class basicAnn(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
-        ### input layer
-        self.input = nn.Linear(input_size, 64)
+        # ### input layer
+        # self.input = nn.Linear(input_size, 64)
 
-        ### hidden layers
-        self.hidden1 = nn.Linear(64, 128)
+        # ### hidden layers
+        # self.hidden1 = nn.Linear(64, 128)
+        # self.hidden2 = nn.Linear(128, 64)
+
+        # ### output layer
+        # self.output = nn.Linear(64, output_size)
+
+        ## Ann2 - more neurons
+        self.input = nn.Linear(input_size, 256)
+        self.hidden1 = nn.Linear(256, 128)
         self.hidden2 = nn.Linear(128, 64)
-
-        ### output layer
         self.output = nn.Linear(64, output_size)
     
     def forward(self, x):

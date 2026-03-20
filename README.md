@@ -6,14 +6,18 @@ How to run: python -m folder_name.module_name
 ## Todo: 
 - Continue testing neural network
     - The 100 run dataset and exclusion of u1_prev and u2_prev helped improve the performance of the model (see notes)
-    - Test changing the layer architecture to be: 128 -> 62 -> 32 -> 2
+    - Test changing the layer architecture to be: 128 -> 64 -> 32 -> 2
     - Increase the number of training epochs to 500
 - Rewrite and clean up code
     - Can still be cleaned up more (especially with comments etc) 
 
 ## Notes:
+- Basic Ann 2
+    - Architecture was changed to be: input -> 265 -> 128 -> 64 -> output (2) 
+    - At 500 epochs, trained on data_317_01_100, 
 - data_317_01_100.h5 and hidden_test_data(_1).h5 are files that do not have ee_dx_target/ee_dy_target
-    - The best results is with these files but removing u1_prev and u2_prev. The model generally follows the mpc trajectory, but doesn't reach the goal
+    - The best results is with these files but removing u1_prev and u2_prev. The model generally follows the mpc trajectory, but doesn't reach the goal (200 epochs)
+    - At 500 epochs, the model also violates the ground constraint
 - data_320_01_100.h5 and hidden_test_data_2.h5 are files that do have ee_dx_target/ee_dy_target
     - Has the lowest loss but the problem is the model violates the constraint where the robot cannot touch the ground (with or without removing u1_prev, u2_prev)
 - Joint velocities get super jagged (bouncy) when it needs to move near the obstacle to reach the goal (probably due to repulsion + SSM)
