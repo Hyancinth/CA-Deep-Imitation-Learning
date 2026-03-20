@@ -143,8 +143,8 @@ def build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns = N
         'min_dist_obstacle_link_2': dist_obstacles_links[1],
         'u1_prev': u_prev[0],
         'u2_prev': u_prev[1],
-        # 'ee_dx_target': ee_dx_target,
-        # 'ee_dy_target': ee_dy_target
+        'ee_dx_target': ee_dx_target,
+        'ee_dy_target': ee_dy_target
     }
     
 
@@ -230,10 +230,11 @@ if __name__ == "__main__":
     7. Store store both the joint velocities (u1, u2) and the joint angles (theta1, theta2) at each time step for both the model predictions and the ground truth from the dataset
     """
     # change these to appropriate file 
-    training_file_path = "model/data/data_317_01_100.h5"
-    hidden_file_path = "model/data/hidden_test_data.h5"
+    training_file_path = "model/data/data_320_01_100.h5"
+    hidden_file_path = "model/data/hidden_test_data_2.h5"
 
-    exclude_columns = ['u1_prev', 'u2_prev'] 
+    # exclude_columns = ['u1_prev', 'u2_prev']
+    exclude_columns = []
     # exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
 
     # load the training data and train the model
