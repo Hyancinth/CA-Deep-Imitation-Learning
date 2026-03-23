@@ -158,8 +158,8 @@ def visualize_control_inputs(mpc_h5_path, pred_h5_path, run_i=0):
     plt.show()  
 
 if __name__ == "__main__":
-    mpc_h5_path = "model/hidden_test_data/hidden_test_data.h5"
-    pred_h5_path = "analysis/model_predictions/basicann2_model_predictions_data_317_01_100_2026-03-22_14-30-52.h5"
+    mpc_h5_path = "model/hidden_test_data/hidden_test_data_2.h5"
+    pred_h5_path = "analysis/model_predictions/basicann2_model_predictions_data_322_01_100_2026-03-23_15-04-10_exclude_u1_prev_u2_prev.h5"
     visualize_h5_comparison(mpc_h5_path, pred_h5_path, run_i=0, save_gif=False, gif_filename="robot_comparison.gif")
     visualize_joint_thetas(mpc_h5_path, pred_h5_path, run_i=0)
     visualize_control_inputs(mpc_h5_path, pred_h5_path, run_i=0)

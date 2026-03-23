@@ -12,7 +12,6 @@ from model.train_test_nn import create_data_loaders, train_model
 from utils.utils import fk, dist_to_links
 from visualization.visualize_model import plot_train_test_losses, plot_ee_trajectories
 
-
 def train_and_evaluate_model(file_path, model, exclude_columns = None, num_epochs=200, learning_rate=0.001):
     """
     Train model on the dataset
@@ -206,10 +205,15 @@ def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None
     ee_pos = fk_result[2:4]
 
     # return 
-    theta_trajectory = [theta.copy()]
-    ee_trajectory = [ee_pos]
-    joint1_trajectory = [joint1_pos]
-    u_trajectory = [u_prev]
+    # theta_trajectory = [theta.copy()]
+    # ee_trajectory = [ee_pos]
+    # joint1_trajectory = [joint1_pos]
+    # u_trajectory = [u_prev]
+
+    theta_trajectory = []
+    ee_trajectory = []
+    joint1_trajectory = []
+    u_trajectory = []
 
     for step in range(num_steps):
         x = build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns)
@@ -232,7 +236,7 @@ def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None
     return np.array(ee_trajectory), np.array(joint1_trajectory), np.array(theta_trajectory), np.array(u_trajectory)
 
 
-if __name__ == "__main__":
+def train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, learning_rate, nn, exclude_columns = None):
     """
     Steps for evaluating the trained model on the hidden dataset
     1. Load the hidden dataset using load_data_from_file and generate input-output pairs using generate_input_output_data
@@ -245,22 +249,18 @@ if __name__ == "__main__":
     7. Store store both the joint velocities (u1, u2) and the joint angles (theta1, theta2) at each time step for both the model predictions and the ground truth from the dataset
     """
     # change these to appropriate file 
-    training_file_name = "data_317_01_100"
-    training_file_path = "model/data/data_317_01_100.h5"
-    hidden_file_path = "model/hidden_test_data/hidden_test_data.h5"
+    training_file_path = f"model/data/{training_file_name}.h5"
 
-    exclude_columns = ['u1_prev', 'u2_prev']
-    # exclude_columns = []
-    # exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
+    if exclude_columns is None:
+        exclude_columns = []
 
     # load the training data and train the model
-    nn = basicAnn(input_size=len(X_COLUMNS) - len(exclude_columns), output_size=len(Y_COLUMNS))
-    model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path, nn, exclude_columns, num_epochs = 500, learning_rate=0.001)
+    nn = nn
+    model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path, nn, exclude_columns, num_epochs = num_epochs, learning_rate=learning_rate)
     plot_train_test_losses(train_losses, test_losses)
 
     # save state dictionary of the trained model
     # save the model under the same timestamp as the scaler
-    save_dir = "model/trained_models/"
     model_filename = save_dir + f"model_{timestamp}.pt"    
     torch.save(model.state_dict(), model_filename)
 
@@ -303,5 +303,17 @@ if __name__ == "__main__":
         "hidden_data_file_path": hidden_file_path,
     }
 
-    write_data_to_file(data_to_save, filename=f"basicann2_model_predictions_{training_file_name}_{timestamp}.h5")
-    print(f"Model predictions saved to h5 file: basicann2_model_predictions_{training_file_name}_{timestamp}.h5")
+    write_data_to_file(data_to_save, filename=f"basicann2_model_predictions_{training_file_name}_{timestamp}_exclude_{'_'.join(exclude_columns)}.h5", type='model_prediction')
+    print(f"Model predictions saved to h5 file: basicann2_model_predictions_{training_file_name}_{timestamp}_exclude_{'_'.join(exclude_columns)}.h5")
+
+if __name__ == "__main__":
+    training_file_name = "data_317_01_100"
+    hidden_file_path = "model/hidden_test_data/hidden_test_data.h5"
+    save_dir = "model/trained_models/"
+    num_epochs = 500
+    learning_rate = 0.001
+    exclude_columns = ['u1_prev', 'u2_prev']
+    # exclude_columns = []
+    # exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
+    
+    train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, learning_rate, exclude_columns)
