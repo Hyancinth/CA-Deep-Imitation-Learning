@@ -13,7 +13,7 @@ def plot_train_test_losses(train_losses, test_losses):
 
 def plot_ee_trajectories(ee_positions_gt, ee_positions_pred, goal, obstacle, link_pos, a):
     plt.figure(figsize=(8, 8))
-    plt.plot(ee_positions_gt[:, 0], ee_positions_gt[:, 1], label='Ground Truth Trajectory', marker='o')
+    plt.plot(ee_positions_gt[:, 0], ee_positions_gt[:, 1], label='MPC Trajectory', marker='o')
     plt.plot(ee_positions_pred[:, 0], ee_positions_pred[:, 1], label='Predicted Trajectory', marker='x')
     plt.plot([0, link_pos[0]], [0, link_pos[1]], color='blue', lw=3)
     plt.plot([link_pos[0], ee_positions_gt[0, 0]], [link_pos[1], ee_positions_gt[0, 1]], color='blue', lw=3)
