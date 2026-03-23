@@ -117,7 +117,7 @@ def generate_data(mpc, target, obstacle, a):
         'ee_dy_target': ee_dy_target
     }
     
-def write_data_to_file(data, filename):
+def write_data_to_file(data, filename, type='model_data'):
     """
     Write data to H5 file
 
@@ -127,7 +127,13 @@ def write_data_to_file(data, filename):
             data
     """
     base_dir = Path(__file__).resolve().parent
-    filepath = base_dir.parent/"model"/"data"/filename
+    if type == 'model_data':
+        filepath = base_dir.parent/"model"/"data"/filename
+    elif type == 'model_prediction':
+        filepath = base_dir.parent/"analysis"/"model_predictions"/filename
+    elif type =="hidden_test_data":
+        filepath = base_dir.parent/"model"/"hidden_test_data"/filename
+        
     filepath.parent.mkdir(parents=True, exist_ok=True) # create data directory if it doesn't exist
 
     f = h5.File(filepath, 'a')
