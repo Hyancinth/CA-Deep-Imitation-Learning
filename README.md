@@ -4,17 +4,45 @@ DNN that learns to imitate an MPC for collision avoidance
 How to run: python -m folder_name.module_name
 
 ## Todo: 
-- Start testing neural network
-    - Preliminary results do not look good 
-    - Test loss oscilates a lot and is consistently higher than training loss (without decreasing)
-        - Model is likely overfitting
-    - Consider removing u1_prev and u2_prev from the input features
-        - Reduces inputs from 12 to 10
-    - Test changing the layer architecture to be: 128 -> 62 -> 32 -> 2
+- Create a function to numerically analyze the data
+    - Compare distance from ee to the target, min dist from the obstacle etc
+- Continue testing neural network
+    - Increase the number of training epochs to 600
+    - Using data_322_01_100 can do tests to see if excluding certain columns has better impact (for example we found that using ee_dx/dy_target causes the model to not 
+    follow the ground constraint)
 - Rewrite and clean up code
     - Can still be cleaned up more (especially with comments etc) 
 
 ## Notes:
+- run_model script was changed to train_model
+    - Fixed the script to now work with the 14 input features (alongside excluding columns)
+    - Removing u1_prev and u2_prev seems to improve performance
+    - The latest model: 2026-03-23_17-14-22 (timestamp) ignores u1_prev and u2_prev but includes ee_dx_target and ee_dy_target
+        - Model performs pretty well (suprisingly it overshoots on hidden_test_data_2)
+        - Also performs well on hidden_data_5/6 (arguably does better for one of them compared to the MPC)
+        - Though the model doesn't quite reach close enough to the target
+- Basic Ann 2
+    - Architecture was changed to be: input -> 265 -> 128 -> 64 -> output (2) 
+    - At 500 epochs, trained on data_317_01_100, the performance is decent though it does still stop short of the goal. Perhaps increase the number of epochs to 600.  
+- List of data + hidden_test_data that contains u1_prev, u2_prev, ee_dx_target, ee_dy_target
+    - data_322_01_100.h5
+    - data_320_01_100.h5
+    - hidden_test_data_6.h5
+    - hidden_test_data_5.h5
+    - hidden_test_data_4.h5
+    - hidden_test_data_3.h5
+    - hidden_test_data_2.h5
+- _5 and _6 are both more interesting test scenarios
+- List of data + hidden_test_data that contains u1_prev, u2_prev
+    - data_317_01_100.h5
+    - data_313_01_30.h5
+    - hidden_test_data_1.h5
+    - hidden_test_data.h5
+- data_317_01_100.h5 and hidden_test_data(_1).h5 are files that do not have ee_dx_target/ee_dy_target
+    - The best results is with these files but removing u1_prev and u2_prev. The model generally follows the mpc trajectory, but doesn't reach the goal (200 epochs)
+    - Even at 500 epochs, sometimes the model also violates the ground constraint
+- data_320_01_100.h5 and hidden_test_data_2.h5 are files that do have ee_dx_target/ee_dy_target
+    - Has the lowest loss but the problem is the model violates the constraint where the robot cannot touch the ground (with or without removing u1_prev, u2_prev)
 - Joint velocities get super jagged (bouncy) when it needs to move near the obstacle to reach the goal (probably due to repulsion + SSM)
 - Combinations that causes an exit: target = np.array([1.0, 1.0]), obstacle = np.array([1.4, 1.0])
 - Combinations that cause jagged velocity: np.array([1.5, 1.0]), obstacle = np.array([1.0, 0.8]) 

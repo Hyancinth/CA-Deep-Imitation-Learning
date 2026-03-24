@@ -48,18 +48,19 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
         y2 = robot_motion["y2"]
 
         n_steps = len(theta1)
-        time = np.arange(n_steps)
+        time = np.arange(n_steps)*0.1
 
         fig = plt.figure(figsize=(16, 9))
         num_plot_rows, num_plot_cols = 4, 2
 
-        plt.title(f'Run {run_i}')
+        # plt.title(f'Run {run_i}')
+        fig.suptitle(f'Run {run_i}')
 
         ax1 = plt.subplot2grid((num_plot_rows, num_plot_cols), (0, 0), rowspan=4)
         ax3 = plt.subplot2grid((num_plot_rows, num_plot_cols), (0, 1))
-        ax4 = plt.subplot2grid((num_plot_rows, num_plot_cols), (1, 1))
-        ax5 = plt.subplot2grid((num_plot_rows, num_plot_cols), (2, 1))
-        ax6 = plt.subplot2grid((num_plot_rows, num_plot_cols), (3, 1))
+        ax4 = plt.subplot2grid((num_plot_rows, num_plot_cols), (1, 1), sharex=ax3)
+        ax5 = plt.subplot2grid((num_plot_rows, num_plot_cols), (2, 1), sharex=ax3)
+        ax6 = plt.subplot2grid((num_plot_rows, num_plot_cols), (3, 1), sharex=ax3)
 
         ax3.set_ylabel('theta1 (rad)')
         ax4.set_ylabel('theta2 (rad)')
@@ -70,8 +71,12 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
         for ax in [ax3, ax4, ax5, ax6]:
             ax.yaxis.set_label_position("right")
             ax.yaxis.tick_right()
-            if ax != ax6:
-                ax.xaxis.set_ticklabels([])     
+            if ax != ax6:  
+                ax.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+
+        ax6.tick_params(axis='x', which='both', bottom=True, labelbottom=True)
+        ax6.set_xlim(0, time[-1]+0.2)
+        ax6.set_xticks(np.arange(0, time[-1] + 0.2, 2.0))
 
         # plot full time-series in the right column (static)
         ax3.plot(time, theta1, color='#1f77b4')
@@ -84,7 +89,8 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
         ax6.set_xlabel('time (s)')      
 
         fig.align_ylabels()
-        fig.tight_layout()
+        # fig.tight_layout()
+        fig.tight_layout(pad=1.5, h_pad=0.5)
 
         ax1.hlines(0, -2.5, 2.5, colors='k')
 
@@ -129,7 +135,7 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
 
             # cursor lines
             for vl in vlines:
-                vl.set_xdata([i, i])
+                vl.set_xdata([time[i], time[i]])
 
             # plt.title.set_text(f'step {i}')
 
@@ -145,5 +151,9 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
     return animations
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     h5_path = "model/data/hidden_test_data.h5"
+=======
+    h5_path = "model/hidden_test_data/hidden_test_data_2.h5"
+>>>>>>> testing/basic-dnn
     visualize_h5(h5_path)

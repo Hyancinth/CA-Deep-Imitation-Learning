@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 
+<<<<<<< HEAD
 def plot_train_test_losses(train_losses, test_losses):
+=======
+def plot_train_test_losses(train_losses, test_losses, timestamp, training_file_name, exclude_columns):
+>>>>>>> testing/basic-dnn
     plt.figure(figsize=(10, 6))
     plt.plot(train_losses, label='Train Loss')
     plt.plot(test_losses, label='Test Loss')
@@ -9,11 +13,20 @@ def plot_train_test_losses(train_losses, test_losses):
     plt.title('Training and Test Loss over Epochs')
     plt.legend()
     plt.grid()
+<<<<<<< HEAD
     plt.show()
 
 def plot_ee_trajectories(ee_positions_gt, ee_positions_pred, goal, obstacle, link_pos, a):
     plt.figure(figsize=(8, 8))
     plt.plot(ee_positions_gt[:, 0], ee_positions_gt[:, 1], label='Ground Truth Trajectory', marker='o')
+=======
+    plt.savefig(f"imgs/loss_plots/loss_plot_{timestamp}_{training_file_name}_exclude_{'_'.join(exclude_columns)}.png")
+    plt.show()
+
+def plot_ee_trajectories(ee_positions_gt, ee_positions_pred, goal, obstacle, link_pos, a, timestamp, training_file_name, exclude_columns, hidden_data_filename):
+    plt.figure(figsize=(8, 8))
+    plt.plot(ee_positions_gt[:, 0], ee_positions_gt[:, 1], label='MPC Trajectory', marker='o')
+>>>>>>> testing/basic-dnn
     plt.plot(ee_positions_pred[:, 0], ee_positions_pred[:, 1], label='Predicted Trajectory', marker='x')
     plt.plot([0, link_pos[0]], [0, link_pos[1]], color='blue', lw=3)
     plt.plot([link_pos[0], ee_positions_gt[0, 0]], [link_pos[1], ee_positions_gt[0, 1]], color='blue', lw=3)
@@ -26,4 +39,8 @@ def plot_ee_trajectories(ee_positions_gt, ee_positions_pred, goal, obstacle, lin
     plt.legend()
     plt.grid()
     plt.axis('equal')
+<<<<<<< HEAD
+=======
+    plt.savefig(f"imgs/trajectory_plots/trajectory_plot_{timestamp}_{training_file_name}_{hidden_data_filename}_exclude_{'_'.join(exclude_columns)}.png")
+>>>>>>> testing/basic-dnn
     plt.show()
