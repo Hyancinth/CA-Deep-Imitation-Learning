@@ -65,7 +65,7 @@ def run_mpc_controller(mpc, simulator, p_template, p_template_sim, target, obsta
 if __name__ == "__main__":
     mpc, simulator, p_template, p_template_sim = mpc_controller()
 
-    num_runs = 100 # number of runs to generate data for - change this to what you want
+    num_runs = 1 # number of runs to generate data for - change this to what you want
     run = 0
 
     while run < num_runs:
@@ -73,13 +73,18 @@ if __name__ == "__main__":
         a = np.array([1.0, 1.0])
 
         target, obstacle = sample_target_and_obstacle(x0, a)
+        # obstacle = np.array([1.01190359, 0.06506446])
+        # target = np.array([-0.15968798,  0.21833501])
         print(f"Attempting run {run+1}/{num_runs} with target: {target}, obstacle: {obstacle}")
         success, data = run_mpc_controller(mpc, simulator, p_template, p_template_sim, target, obstacle, x0=x0, a=a)
 
         if success:
             print(f"Run {run+1}/{num_runs} successful. Saving data...")
             data['run_number'] = run
-            write_data_to_file(data, 'data_317_01_100.h5') # change this to the appropriate file name
+
+            save_type = 'hidden_test_data' # 'model_data', 'model_prediction' or 'hidden_test-data'
+            # write_data_to_file(data, f'data_322_01_{num_runs}.h5', type=save_type) # change this to the appropriate file name
+            write_data_to_file(data, 'hidden_test_data_6.h5', type=save_type) # change this to the appropriate file name
             run += 1
         else:
             print(f"Run {run+1} failed. Retrying with a new target and obstacle...")

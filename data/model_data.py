@@ -17,7 +17,9 @@ X_COLUMNS = [
     'min_dist_obstacle_link_1',
     'min_dist_obstacle_link_2',
     'u1_prev',
-    'u2_prev'
+    'u2_prev',
+    'ee_dx_target',
+    'ee_dy_target',
 ]
 
 Y_COLUMNS = [

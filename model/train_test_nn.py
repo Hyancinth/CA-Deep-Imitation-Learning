@@ -3,7 +3,9 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 def create_data_loaders(x_train, y_train, x_test, y_test, batch_size=32):
-    
+    """
+    Create PyTorch data loaders for training and testing datasets
+    """
     # convert to tensor
     x_train_tensor = torch.tensor(x_train, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
@@ -21,6 +23,21 @@ def create_data_loaders(x_train, y_train, x_test, y_test, batch_size=32):
     return train_loader, test_loader
 
 def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, learning_rate=0.001):
+    """
+    Train neural network model using the provided training and testing data loaders
+
+    Args:
+        model (nn.Module): PyTorch neural network model to be trained
+        train_loader (DataLoader): PyTorch data loader for training data
+        test_loader (DataLoader): PyTorch data loader for testing data
+        num_epochs (int): number of epochs to train the model for
+        learning_rate (float): learning rate for the optimizer
+    
+    Returns:
+        model (nn.Module): trained PyTorch neural network model
+        train_losses (torch.Tensor): tensor containing training loss for each epoch
+        test_losses (torch.Tensor): tensor containing testing loss for each epoch
+    """
     # define loss function and optimizer
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) # use small learning rate for adam
