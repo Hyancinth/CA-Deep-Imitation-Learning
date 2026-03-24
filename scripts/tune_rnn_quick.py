@@ -1,7 +1,7 @@
-import os
 from pathlib import Path
 from datetime import datetime
 import itertools
+import os
 
 import joblib
 import matplotlib.pyplot as plt
@@ -29,8 +29,10 @@ def ensure_dir(path):
 def evaluate_on_test_set(model, x_test, y_test, device):
     model.eval()
     x_tensor = torch.tensor(x_test, dtype=torch.float32).to(device)
+
     with torch.no_grad():
         preds = model(x_tensor).cpu().numpy()
+
     mse = np.mean((preds - y_test) ** 2)
     mae = np.mean(np.abs(preds - y_test))
     return preds, mse, mae
@@ -45,6 +47,7 @@ def plot_losses(train_losses, test_losses, save_path=None, title="Loss Curve"):
     plt.title(title)
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
     plt.close()
@@ -52,6 +55,7 @@ def plot_losses(train_losses, test_losses, save_path=None, title="Loss Curve"):
 
 def plot_prediction_vs_truth(y_true, y_pred, save_path=None, title="Prediction vs Ground Truth"):
     t = np.arange(y_true.shape[0])
+
     plt.figure(figsize=(10, 5))
     plt.plot(t, y_true[:, 0], label="True u1")
     plt.plot(t, y_pred[:, 0], "--", label="Pred u1")
@@ -62,8 +66,96 @@ def plot_prediction_vs_truth(y_true, y_pred, save_path=None, title="Prediction v
     plt.title(title)
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_bar_mean(df, x_col, y_col, save_path, title, rotate_xticks=False):
+    grouped = df.groupby(x_col)[y_col].mean().sort_index()
+
+    plt.figure(figsize=(8, 5))
+    grouped.plot(kind="bar")
+    plt.ylabel(y_col)
+    plt.title(title)
+    plt.grid(True, axis="y")
+    if rotate_xticks:
+        plt.xticks(rotation=30, ha="right")
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_scatter_epochs_vs_mse(df, save_path):
+    plt.figure(figsize=(8, 5))
+    plt.scatter(df["num_epochs"], df["test_mse"])
+    plt.xlabel("Number of Epochs")
+    plt.ylabel("Test MSE")
+    plt.title("Epochs vs Test MSE")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_scatter_lr_vs_mse(df, save_path):
+    plt.figure(figsize=(8, 5))
+    plt.scatter(df["learning_rate"], df["test_mse"])
+    plt.xscale("log")
+    plt.xlabel("Learning Rate (log scale)")
+    plt.ylabel("Test MSE")
+    plt.title("Learning Rate vs Test MSE")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_heatmap_hidden_vs_layers(df, save_path):
+    pivot = df.pivot_table(
+        values="test_mse",
+        index="hidden_size",
+        columns="num_layers",
+        aggfunc="mean"
+    )
+
+    plt.figure(figsize=(7, 5))
+    plt.imshow(pivot, aspect="auto")
+    plt.colorbar(label="Mean Test MSE")
+    plt.xticks(range(len(pivot.columns)), pivot.columns)
+    plt.yticks(range(len(pivot.index)), pivot.index)
+    plt.xlabel("Number of Layers")
+    plt.ylabel("Hidden Size")
+    plt.title("Hidden Size vs Number of Layers")
+
+    for i in range(len(pivot.index)):
+        for j in range(len(pivot.columns)):
+            value = pivot.iloc[i, j]
+            if pd.notna(value):
+                plt.text(j, i, f"{value:.4f}", ha="center", va="center")
+
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
+
+
+def plot_top_models(df, save_path, top_n=8):
+    top_df = df.nsmallest(top_n, "test_mse").copy()
+
+    labels = [
+        f"hs={row.hidden_size}, L={row.num_layers}\n{row.feature_set}, ep={row.num_epochs}"
+        for _, row in top_df.iterrows()
+    ]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(range(len(top_df)), top_df["test_mse"])
+    plt.xticks(range(len(top_df)), labels, rotation=30, ha="right")
+    plt.ylabel("Test MSE")
+    plt.title(f"Top {top_n} Quick-Tuning Runs")
+    plt.grid(True, axis="y")
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
     plt.close()
 
 
@@ -152,7 +244,10 @@ def run_single_experiment(
 
 def main():
     repo_root = Path(__file__).resolve().parents[1]
+
     training_file_path = repo_root / "model" / "data" / "data_320_01_100.h5"
+    # If your file is in top-level data/, change the line above to:
+    # training_file_path = repo_root / "data" / "data_320_01_100.h5"
 
     output_dir = repo_root / "model" / "rnn_quick_outputs"
     model_dir = repo_root / "model" / "trained_models"
@@ -231,19 +326,95 @@ def main():
             best_artifacts = artifacts
 
     results_df = pd.DataFrame(results).sort_values(by="test_mse", ascending=True)
-    csv_path = output_dir / f"rnn_quick_results_{timestamp}.csv"
-    results_df.to_csv(csv_path, index=False)
+
+    results_csv_path = output_dir / f"rnn_quick_results_{timestamp}.csv"
+    results_df.to_csv(results_csv_path, index=False)
+
+    best_result_df = pd.DataFrame([best_result])
+    best_result_csv_path = output_dir / f"best_rnn_quick_result_{timestamp}.csv"
+    best_result_df.to_csv(best_result_csv_path, index=False)
+
+    # Hyperparameter visualization plots
+    plot_bar_mean(
+        results_df,
+        x_col="hidden_size",
+        y_col="test_mse",
+        save_path=output_dir / f"quick_hidden_size_vs_mse_{timestamp}.png",
+        title="Average Test MSE by Hidden Size",
+    )
+
+    plot_bar_mean(
+        results_df,
+        x_col="num_layers",
+        y_col="test_mse",
+        save_path=output_dir / f"quick_num_layers_vs_mse_{timestamp}.png",
+        title="Average Test MSE by Number of Layers",
+    )
+
+    plot_bar_mean(
+        results_df,
+        x_col="feature_set",
+        y_col="test_mse",
+        save_path=output_dir / f"quick_feature_set_vs_mse_{timestamp}.png",
+        title="Average Test MSE by Feature Set",
+        rotate_xticks=True,
+    )
+
+    plot_bar_mean(
+        results_df,
+        x_col="num_epochs",
+        y_col="test_mse",
+        save_path=output_dir / f"quick_epochs_vs_mse_{timestamp}.png",
+        title="Average Test MSE by Number of Epochs",
+    )
+
+    plot_bar_mean(
+        results_df,
+        x_col="dropout",
+        y_col="test_mse",
+        save_path=output_dir / f"quick_dropout_vs_mse_{timestamp}.png",
+        title="Average Test MSE by Dropout",
+    )
+
+    plot_bar_mean(
+        results_df,
+        x_col="learning_rate",
+        y_col="test_mse",
+        save_path=output_dir / f"quick_learning_rate_vs_mse_bar_{timestamp}.png",
+        title="Average Test MSE by Learning Rate",
+    )
+
+    plot_scatter_epochs_vs_mse(
+        results_df,
+        save_path=output_dir / f"quick_epochs_vs_mse_scatter_{timestamp}.png",
+    )
+
+    plot_scatter_lr_vs_mse(
+        results_df,
+        save_path=output_dir / f"quick_learning_rate_vs_mse_scatter_{timestamp}.png",
+    )
+
+    plot_heatmap_hidden_vs_layers(
+        results_df,
+        save_path=output_dir / f"quick_hidden_vs_layers_heatmap_{timestamp}.png",
+    )
+
+    plot_top_models(
+        results_df,
+        save_path=output_dir / f"quick_top_models_{timestamp}.png",
+        top_n=8,
+    )
 
     print("\nTop results:")
     print(results_df.to_string(index=False))
-    print(f"\nSaved results CSV to: {csv_path}")
+    print(f"\nSaved full results CSV to: {results_csv_path}")
+    print(f"Saved best result CSV to: {best_result_csv_path}")
 
     if best_artifacts is not None:
         best_model_path = model_dir / f"best_rnn_quick_{timestamp}.pt"
         best_scaler_path = scaler_dir / f"best_rnn_quick_scaler_{timestamp}.pkl"
         best_loss_plot_path = output_dir / f"best_rnn_quick_loss_{timestamp}.png"
         best_pred_plot_path = output_dir / f"best_rnn_quick_prediction_{timestamp}.png"
-        best_summary_path = output_dir / f"best_rnn_quick_summary_{timestamp}.txt"
 
         torch.save(best_artifacts["model"].state_dict(), best_model_path)
         joblib.dump(best_artifacts["scaler"], best_scaler_path)
@@ -262,7 +433,8 @@ def main():
             title="Best Quick RNN Prediction vs Ground Truth",
         )
 
-        with open(best_summary_path, "w", encoding="utf-8") as f:
+        summary_txt_path = output_dir / f"best_rnn_quick_summary_{timestamp}.txt"
+        with open(summary_txt_path, "w", encoding="utf-8") as f:
             for k, v in best_result.items():
                 f.write(f"{k}: {v}\n")
 
@@ -272,7 +444,19 @@ def main():
         print(f"Saved best scaler to: {best_scaler_path}")
         print(f"Saved best loss plot to: {best_loss_plot_path}")
         print(f"Saved best prediction plot to: {best_pred_plot_path}")
-        print(f"Saved best summary to: {best_summary_path}")
+        print(f"Saved best summary text to: {summary_txt_path}")
+
+    print("\nSaved hyperparameter tuning visualizations:")
+    print(output_dir / f"quick_hidden_size_vs_mse_{timestamp}.png")
+    print(output_dir / f"quick_num_layers_vs_mse_{timestamp}.png")
+    print(output_dir / f"quick_feature_set_vs_mse_{timestamp}.png")
+    print(output_dir / f"quick_epochs_vs_mse_{timestamp}.png")
+    print(output_dir / f"quick_dropout_vs_mse_{timestamp}.png")
+    print(output_dir / f"quick_learning_rate_vs_mse_bar_{timestamp}.png")
+    print(output_dir / f"quick_epochs_vs_mse_scatter_{timestamp}.png")
+    print(output_dir / f"quick_learning_rate_vs_mse_scatter_{timestamp}.png")
+    print(output_dir / f"quick_hidden_vs_layers_heatmap_{timestamp}.png")
+    print(output_dir / f"quick_top_models_{timestamp}.png")
 
 
 if __name__ == "__main__":

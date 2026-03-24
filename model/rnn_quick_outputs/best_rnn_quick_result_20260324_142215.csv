@@ -1,0 +1,2 @@
+hidden_size,num_layers,num_epochs,learning_rate,dropout,feature_set,exclude_columns,best_epoch,best_test_loss,final_train_loss,final_test_loss,test_mse,test_mae,experiment_name
+128,2,150,0.001,0.1,all_features,None,148,0.00022048501705285162,0.0004217804700601846,0.00023941658291732893,0.00023941660087699378,0.006642808509862016,quick_hs128_layers2_all_features_ep150_lr0.001_do0.1
