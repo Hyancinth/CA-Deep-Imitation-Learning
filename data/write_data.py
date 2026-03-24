@@ -162,3 +162,10 @@ def print_file_structure(file, indent=0):
             print_file_structure(item, indent + 1) # recursive call to print subgroup structure
         else: 
             print('  ' * indent + f"Dataset: {key}, shape: {item.shape}, dtype: {item.dtype}")
+    
+if __name__ ==  "__main__":
+    base_dir = Path(__file__).resolve().parent
+    filepath = base_dir.parent/"model"/"data"/"data_322_01_100.h5"
+    f = h5.File(filepath, 'r')
+    print_file_structure(f)
+    f.close()

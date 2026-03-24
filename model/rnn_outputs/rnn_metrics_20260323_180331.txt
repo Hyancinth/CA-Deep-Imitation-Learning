@@ -1,0 +1,17 @@
+Timestamp: 20260323_180331
+Training file: C:\Bita Drive\1. McMaster\Deep Learning\Final Project\CA-Deep-Imitation-Learning\model\data\data_320_01_100.h5
+Input columns: ['theta1', 'theta2', 'target_x', 'target_y', 'obstacle_x', 'obstacle_y', 'ee_dist_to_target', 'ee_dist_to_obstacle', 'min_dist_obstacle_link_1', 'min_dist_obstacle_link_2', 'u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
+Output columns: ['u1', 'u2']
+hidden_size=64
+num_layers=2
+dropout=0.1
+nonlinearity=tanh
+bidirectional=False
+batch_size=16
+num_epochs=200
+learning_rate=0.001
+weight_decay=1e-05
+test_size=0.2
+random_state=42
+Final Test MSE=0.000283
+Final Test MAE=0.008529
