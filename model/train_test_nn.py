@@ -20,11 +20,11 @@ def create_data_loaders(x_train, y_train, x_test, y_test, batch_size=32):
     
     return train_loader, test_loader
 
-def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, learning_rate=0.01):
+def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, learning_rate=0.001, model_name = "ANN"):
     # define loss function and optimizer
     loss_function = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4) # use small learning rate for adam
+        
     train_losses = torch.zeros(num_epochs)
     test_losses = torch.zeros(num_epochs)
 
@@ -34,6 +34,8 @@ def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, lea
         train_loss = 0.0
         for x_batch, y_batch in train_loader:
             # forward pass and loss
+            print(f"Shape of x_batch: {x_batch.shape}")
+            x_batch = x_batch.unsqueeze(1)
             pred = model(x_batch)
             loss = loss_function(pred, y_batch)
 

@@ -145,7 +145,5 @@ def visualize_h5(h5_path, obs_radius=0.1, joint_radius=0.1):
     return animations
 
 if __name__ == "__main__":
-    import os
-    print(os.getcwd())
-    h5_path = "model/data/data_311_01_30.h5"
+    h5_path = "model/data/hidden_test_data.h5"
     visualize_h5(h5_path)

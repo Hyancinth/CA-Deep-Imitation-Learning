@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import joblib
+from datetime import datetime
 
 X_COLUMNS = [
     'theta1',
@@ -39,7 +40,7 @@ def split_test_train(data, test_size=0.2):
 
     return train_data, test_data
 
-def generate_input_output_data(data):
+def generate_input_output_data(data, exclude_columns = None):
     """
     Convert data dict to array of input features (X) and outputs (Y)
 
@@ -47,11 +48,16 @@ def generate_input_output_data(data):
     - x (numpy array): array of input features for all runs, shape (num_samples, num_features)
     - y (numpy array): array of outputs for all runs, shape (num_samples, num_outputs)
     """
+    if not exclude_columns:
+        exclude_columns = []
+    
+    filter_x_columns = [col for col in X_COLUMNS if col not in exclude_columns]
+
     x = []
     y = []
     for run in data.keys():
         run_data = data[run]
-        x_run = np.column_stack([run_data[col] for col in X_COLUMNS])
+        x_run = np.column_stack([run_data[col] for col in filter_x_columns])
         y_run = np.column_stack([run_data[col] for col in Y_COLUMNS])
 
         x.append(x_run)
@@ -59,7 +65,7 @@ def generate_input_output_data(data):
     
     return np.vstack(x), np.vstack(y)
 
-def scale_features(x_train, x_test):
+def scale_features(x_train, x_test, prev_scaler = None):
     """
     Scale input features
 
@@ -68,16 +74,24 @@ def scale_features(x_train, x_test):
     - x_test_scaled (numpy array): scaled testing input features
     """
 
-    scaler = StandardScaler()
-    x_train_scaled = scaler.fit_transform(x_train)
-    x_test_scaled = scaler.transform(x_test)
+    if not prev_scaler:
+        scaler = StandardScaler()
+        x_train_scaled = scaler.fit_transform(x_train)
+        x_test_scaled = scaler.transform(x_test)
 
-    save_dir = "model/scalers/"
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        save_dir = "model/scalers/"
+        scaler_filename = save_dir + f"input_scaler_{timestamp}.pkl"
+        joblib.dump(scaler, scaler_filename)
+    else:
+        x_train_scaled = prev_scaler.fit_transform(x_train)
+        x_test_scaled = prev_scaler.transform(x_test)
+        scaler_filename = prev_scaler
+        timestamp = 0
 
-    scaler_filename = save_dir + "input_scaler.pkl"
-    joblib.dump(scaler, scaler_filename)
 
-    return x_train_scaled, x_test_scaled
+    return x_train_scaled, x_test_scaled, scaler_filename, timestamp
+
 
 
 if __name__ == "__main__":
@@ -88,5 +102,5 @@ if __name__ == "__main__":
     print("Input features (X) shape: ", x.shape)
     print("Output labels (Y) shape: ", y.shape)
     print("First 5 rows of X: \n", x[:5])
-    
+    x_train_scaled, x_test_scaled, _ = scale_features(x, x)
 
