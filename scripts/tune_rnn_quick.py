@@ -249,9 +249,10 @@ def main():
     # If your file is in top-level data/, change the line above to:
     # training_file_path = repo_root / "data" / "data_322_01_100.h5"
 
-    output_dir = repo_root / "model" / "rnn_quick_outputs"
-    model_dir = repo_root / "model" / "trained_models"
-    scaler_dir = repo_root / "model" / "scalers"
+    dataset_name = training_file_path.stem  # e.g. "data_322_01_100"
+    output_dir = repo_root / "model" / "rnn_quick_outputs" / dataset_name
+    model_dir  = repo_root / "model" / "trained_models"    / dataset_name
+    scaler_dir = repo_root / "model" / "scalers"           / dataset_name
 
     ensure_dir(output_dir)
     ensure_dir(model_dir)
