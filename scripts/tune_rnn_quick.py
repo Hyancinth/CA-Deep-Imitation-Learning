@@ -245,9 +245,9 @@ def run_single_experiment(
 def main():
     repo_root = Path(__file__).resolve().parents[1]
 
-    training_file_path = repo_root / "model" / "data" / "data_320_01_100.h5"
+    training_file_path = repo_root / "model" / "data" / "data_322_01_100.h5"
     # If your file is in top-level data/, change the line above to:
-    # training_file_path = repo_root / "data" / "data_320_01_100.h5"
+    # training_file_path = repo_root / "data" / "data_322_01_100.h5"
 
     output_dir = repo_root / "model" / "rnn_quick_outputs"
     model_dir = repo_root / "model" / "trained_models"

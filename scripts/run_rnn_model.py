@@ -69,7 +69,7 @@ def evaluate_on_test_set(model, x_test, y_test, device):
 
 
 def main():
-    training_file_path = "C:\\Bita Drive\\1. McMaster\\Deep Learning\\Final Project\\CA-Deep-Imitation-Learning\\model\\data\\data_320_01_100.h5"
+    training_file_path = "C:\\Bita Drive\\1. McMaster\\Deep Learning\\Final Project\\CA-Deep-Imitation-Learning\\model\\data\\data_322_01_100.h5"
     output_dir = "model/rnn_outputs"
     model_dir = "model/trained_models"
     scaler_dir = "model/scalers"
