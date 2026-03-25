@@ -240,17 +240,17 @@ if __name__ == "__main__":
         {
             "label":        "hidden_test_2",
             "mpc_h5":       str(repo_root / "model" / "hidden_test_data" / "hidden_test_data_2.h5"),
-            "pred_h5":      "analysis/model_predictions/<rnn_predictions_hidden_test_data_2_...>.h5",
+            "pred_h5":      str(repo_root / "analysis" / "model_predictions" / "rnn_predictions_data_322_01_100_hidden_test_data_2_run0_20260325_190952_excl_all_features.h5"),
         },
         {
             "label":        "hidden_test_5",
             "mpc_h5":       str(repo_root / "model" / "hidden_test_data" / "hidden_test_data_5.h5"),
-            "pred_h5":      "analysis/model_predictions/<rnn_predictions_hidden_test_data_5_...>.h5",
+            "pred_h5":      str(repo_root / "analysis" / "model_predictions" / "rnn_predictions_data_322_01_100_hidden_test_data_5_run0_20260325_190953_excl_all_features.h5"),
         },
         {
             "label":        "hidden_test_6",
             "mpc_h5":       str(repo_root / "model" / "hidden_test_data" / "hidden_test_data_6.h5"),
-            "pred_h5":      "analysis/model_predictions/<rnn_predictions_hidden_test_data_6_...>.h5",
+            "pred_h5":      str(repo_root / "analysis" / "model_predictions" / "rnn_predictions_data_322_01_100_hidden_test_data_6_run0_20260325_190953_excl_all_features.h5"),
         },
     ]
 

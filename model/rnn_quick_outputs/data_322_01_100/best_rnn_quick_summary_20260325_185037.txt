@@ -1,0 +1,14 @@
+hidden_size: 128
+num_layers: 2
+num_epochs: 150
+learning_rate: 0.001
+dropout: 0.1
+feature_set: all_features
+exclude_columns: None
+best_epoch: 127
+best_test_loss: 0.0002294587786309421
+final_train_loss: 0.0005737457890063524
+final_test_loss: 0.00024122585891745986
+test_mse: 0.00024122586406610265
+test_mae: 0.007675467332403702
+experiment_name: quick_hs128_layers2_all_features_ep150_lr0.001_do0.1

@@ -264,8 +264,8 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     repo_root = Path(__file__).resolve().parents[1]
 
-    MODEL_PATH  = str(repo_root / "model" / "trained_models" / "best_rnn_quick_<TIMESTAMP>.pt")
-    SCALER_PATH = str(repo_root / "model" / "scalers"        / "best_rnn_quick_scaler_<TIMESTAMP>.pkl")
+    MODEL_PATH  = str(repo_root / "model" / "trained_models" / "data_322_01_100" / "best_rnn_quick_20260325_185037.pt")
+    SCALER_PATH = str(repo_root / "model" / "scalers"        / "data_322_01_100" / "best_rnn_quick_scaler_20260325_185037.pkl")
 
     # Must match the exclude_columns used when training the model
     EXCLUDE_COLUMNS: list[str] = []
@@ -303,7 +303,7 @@ if __name__ == "__main__":
         )
 
     # Load model
-    model = RNNPolicy(input_size=input_size, hidden_size=64, num_layers=2, output_size=2)
+    model = RNNPolicy(input_size=input_size, hidden_size=128, num_layers=2, output_size=2)
     model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
     model.eval()
 
