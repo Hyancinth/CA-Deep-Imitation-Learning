@@ -4,7 +4,8 @@ DNN that learns to imitate an MPC for collision avoidance
 How to run: python -m folder_name.module_name
 
 ## Todo: 
-- Create functions that loads saved model + scaler and then loads hidden datasets for testing (use run_model)
+- Create a function to numerically analyze the data
+    - Compare distance from ee to the target, min dist from the obstacle etc
 - Continue testing neural network
     - Increase the number of training epochs to 600
     - Using data_322_01_100 can do tests to see if excluding certain columns has better impact (for example we found that using ee_dx/dy_target causes the model to not 
@@ -13,6 +14,13 @@ How to run: python -m folder_name.module_name
     - Can still be cleaned up more (especially with comments etc) 
 
 ## Notes:
+- run_model script was changed to train_model
+    - Fixed the script to now work with the 14 input features (alongside excluding columns)
+    - Removing u1_prev and u2_prev seems to improve performance
+    - The latest model: 2026-03-23_17-14-22 (timestamp) ignores u1_prev and u2_prev but includes ee_dx_target and ee_dy_target
+        - Model performs pretty well (suprisingly it overshoots on hidden_test_data_2)
+        - Also performs well on hidden_data_5/6 (arguably does better for one of them compared to the MPC)
+        - Though the model doesn't quite reach close enough to the target
 - Basic Ann 2
     - Architecture was changed to be: input -> 265 -> 128 -> 64 -> output (2) 
     - At 500 epochs, trained on data_317_01_100, the performance is decent though it does still stop short of the goal. Perhaps increase the number of epochs to 600.  

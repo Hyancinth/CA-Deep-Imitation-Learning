@@ -63,6 +63,8 @@ def get_hidden_data(file_path, exclude_columns = None):
     obstacle = np.array([data['run_0']['obstacle_x'][0], data['run_0']['obstacle_y'][0]])
     theta1 = data['run_0']['theta1'][:] # for later when we want to compare the predicted and ground truth trajectories
     theta2 = data['run_0']['theta2'][:]
+    min_dist_obstacle_link_1 = data['run_0']['min_dist_obstacle_link_1'][:]
+    min_dist_obstacle_link_2 = data['run_0']['min_dist_obstacle_link_2'][:]
     if exclude_columns is None:
         exclude_columns = []
     x, y = generate_input_output_data(data, exclude_columns)
@@ -77,7 +79,9 @@ def get_hidden_data(file_path, exclude_columns = None):
         # 'x_scaled': x_scaled,
         'y': y,
         'goal': goal,
-        'obstacle': obstacle
+        'obstacle': obstacle,
+        'min_dist_obstacle_link_1': min_dist_obstacle_link_1,
+        'min_dist_obstacle_link_2': min_dist_obstacle_link_2
     }
 
     return data
@@ -143,8 +147,8 @@ def build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns = N
         'min_dist_obstacle_link_2': dist_obstacles_links[1],
         'u1_prev': u_prev[0],
         'u2_prev': u_prev[1],
-        # 'ee_dx_target': ee_dx_target,
-        # 'ee_dy_target': ee_dy_target
+        'ee_dx_target': ee_dx_target,
+        'ee_dy_target': ee_dy_target
     }
     
 
@@ -214,6 +218,10 @@ def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None
     ee_trajectory = []
     joint1_trajectory = []
     u_trajectory = []
+    ee_dx_target = []
+    ee_dy_target = []
+    min_dist_obstacle_link_1 = []
+    min_dist_obstacle_link_2 = []
 
     for step in range(num_steps):
         x = build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns)
@@ -228,15 +236,22 @@ def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None
         ee_pos = fk(theta, a)[2:4]
         ee_trajectory.append(ee_pos)
 
+        ee_dx_target.append(target[0] - ee_pos[0])
+        ee_dy_target.append(target[1] - ee_pos[1])
+
+        dist_obstacles_links = dist_to_links(obstacle, theta, a)
+        min_dist_obstacle_link_1.append(dist_obstacles_links[0])
+        min_dist_obstacle_link_2.append(dist_obstacles_links[1])
+
         theta_trajectory.append(theta.copy())
         u_trajectory.append(u.copy())
 
         print(f"Step {step+1}/{num_steps}, Theta: {theta}, Control: {u}, EE Position: {ee_pos}")
 
-    return np.array(ee_trajectory), np.array(joint1_trajectory), np.array(theta_trajectory), np.array(u_trajectory)
+    return np.array(ee_trajectory), np.array(joint1_trajectory), np.array(theta_trajectory), np.array(u_trajectory), np.array(ee_dx_target), np.array(ee_dy_target), np.array(min_dist_obstacle_link_1), np.array(min_dist_obstacle_link_2)
 
 
-def train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, learning_rate, nn, exclude_columns = None):
+def train_test_loop(training_file_name, hidden_file_name, save_dir, num_epochs, learning_rate, nn, exclude_columns = None):
     """
     Steps for evaluating the trained model on the hidden dataset
     1. Load the hidden dataset using load_data_from_file and generate input-output pairs using generate_input_output_data
@@ -250,18 +265,18 @@ def train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, 
     """
     # change these to appropriate file 
     training_file_path = f"model/data/{training_file_name}.h5"
-
+    hidden_file_path = f"model/hidden_test_data/{hidden_file_name}.h5"
     if exclude_columns is None:
         exclude_columns = []
 
     # load the training data and train the model
     nn = nn
     model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path, nn, exclude_columns, num_epochs = num_epochs, learning_rate=learning_rate)
-    plot_train_test_losses(train_losses, test_losses)
+    plot_train_test_losses(train_losses, test_losses, timestamp, training_file_name, exclude_columns, )
 
     # save state dictionary of the trained model
     # save the model under the same timestamp as the scaler
-    model_filename = save_dir + f"model_{timestamp}.pt"    
+    model_filename = save_dir + f"model_{timestamp}_{'_'.join(exclude_columns)}.pt"    
     torch.save(model.state_dict(), model_filename)
 
     # load hidden dataset
@@ -273,7 +288,7 @@ def train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, 
     obstacle = data['obstacle']
     scaler = joblib.load(scaler_filename)
     # run model on hidden dataset and get predicted end effector trajectory
-    ee_trajectory_pred, joint1_trajectory_pred, theta_trajectory_pred, u_trajectory_pred = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns)
+    ee_trajectory_pred, joint1_trajectory_pred, theta_trajectory_pred, u_trajectory_pred, ee_dx_target, ee_dy_target, min_dist_obstacle_link_1, min_dist_obstacle_link_2 = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns)
     print(f"Length of predicted EE trajectory: {len(ee_trajectory_pred)}")
 
     # ground truth end effector trajectory
@@ -283,7 +298,7 @@ def train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, 
     initial_robot_link = fk(theta0, a) # for drawing initial robot config in the plot
 
     # plot the predicted and ground truth end-effector trajectories, along with the target and obstacle positions and the initial robot configuration
-    plot_ee_trajectories(ee_trajectory_gt, ee_trajectory_pred, target, obstacle, initial_robot_link, a)
+    plot_ee_trajectories(ee_trajectory_gt, ee_trajectory_pred, target, obstacle, initial_robot_link, a, timestamp, training_file_name, exclude_columns, hidden_file_name)
 
     # save predicted trajectory and other data to h5 file
     data_to_save = {
@@ -301,14 +316,18 @@ def train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, 
         "obstacle_x": np.array([obstacle[0]]),
         "obstacle_y": np.array([obstacle[1]]),
         "hidden_data_file_path": hidden_file_path,
+        "ee_dx_target": ee_dx_target,
+        "ee_dy_target": ee_dy_target,
+        "min_dist_obstacle_link_1": min_dist_obstacle_link_1,
+        "min_dist_obstacle_link_2": min_dist_obstacle_link_2,
     }
 
-    write_data_to_file(data_to_save, filename=f"basicann2_model_predictions_{training_file_name}_{timestamp}_exclude_{'_'.join(exclude_columns)}.h5", type='model_prediction')
-    print(f"Model predictions saved to h5 file: basicann2_model_predictions_{training_file_name}_{timestamp}_exclude_{'_'.join(exclude_columns)}.h5")
+    write_data_to_file(data_to_save, filename=f"{timestamp}_{training_file_name}_{hidden_file_name}_exclude_{'_'.join(exclude_columns)}.h5", type='model_prediction')
+    print(f"Model predictions saved to h5 file: {timestamp}_{training_file_name}_{hidden_file_name}_exclude_{'_'.join(exclude_columns)}.h5")
 
 if __name__ == "__main__":
     training_file_name = "data_317_01_100"
-    hidden_file_path = "model/hidden_test_data/hidden_test_data.h5"
+    hidden_file_name = "hidden_test_data"
     save_dir = "model/trained_models/"
     num_epochs = 500
     learning_rate = 0.001
@@ -316,4 +335,4 @@ if __name__ == "__main__":
     # exclude_columns = []
     # exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
     
-    train_test_loop(training_file_name, hidden_file_path, save_dir, num_epochs, learning_rate, exclude_columns)
+    train_test_loop(training_file_name, hidden_file_name, save_dir, num_epochs, learning_rate, exclude_columns)
