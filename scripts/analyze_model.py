@@ -16,15 +16,16 @@ if __name__ == "__main__":
     hidden_file_name = "hidden_test_data_2" # change this to what file you want to analyze
     hidden_file_path = f"model/hidden_test_data/{hidden_file_name}.h5"
     save_dir = "model/trained_models/"
-    num_epochs = 500
+    num_epochs = 600
     learning_rate = 0.001
 
     # features to exclude from model input - change to whatever you want to analyze 
     # exclude_columns = ['u1_prev', 'u2_prev']
+    exclude_columns = ['ee_dx_target', 'ee_dy_target']
     # exclude_columns = []
-    exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
+    # exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
 
-    timestamp = "2026-03-24_14-59-31" # change this to the timestamp of the model you want to analyze
+    timestamp = "2026-03-25_16-21-58" # change this to the timestamp of the model you want to analyze
     model_path = f"{save_dir}/model_{timestamp}_{'_'.join(exclude_columns)}.pt"
     scaler_path = f'model/scalers/input_scaler_{timestamp}.pkl'
 
@@ -81,6 +82,7 @@ if __name__ == "__main__":
     print(f"Predicted Min distance from Link 1 to obstacle: {np.min(min_dist_obstacle_link_1)}")
     print(f"GT Min distance from Link 2 to obstacle: {np.min(mpc_min_dist_obstacle_link_2)}")
     print(f"Predicted Min distance from Link 2 to obstacle: {np.min(min_dist_obstacle_link_2)}")
+    
     write_data_to_file(data_to_save, filename=f"{training_file_name}_{timestamp}_{hidden_file_name}_exclude_{'_'.join(exclude_columns)}.h5", type='model_prediction')
     print(f"Model predictions saved to h5 file: {training_file_name}_{timestamp}_{hidden_file_name}_exclude_{'_'.join(exclude_columns)}.h5")
 

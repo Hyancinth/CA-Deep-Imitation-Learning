@@ -159,7 +159,23 @@ def visualize_control_inputs(mpc_h5_path, pred_h5_path, run_i=0):
 
 if __name__ == "__main__":
     mpc_h5_path = "model/hidden_test_data/hidden_test_data_5.h5"
-    pred_h5_path = "analysis/model_predictions/basicann2_model_predictions_data_322_01_100_2026-03-23_17-14-22_hidden_test_data_5_exclude_u1_prev_u2_prev.h5"
-    visualize_h5_comparison(mpc_h5_path, pred_h5_path, run_i=0, save_gif=False, gif_filename="robot_comparison.gif")
+    # pred_h5_path = "analysis/model_predictions/basicann2_model_predictions_data_322_01_100_2026-03-23_17-14-22_hidden_test_data_5_exclude_u1_prev_u2_prev.h5"
+    
+    training_file_name = "data_322_01_100"
+    hidden_file_name = "hidden_test_data_2" # change this to what file you want to analyze
+    mpc_h5_path = f"model/hidden_test_data/{hidden_file_name}.h5"
+    num_epochs = 600
+    learning_rate = 0.001
+
+    # features to exclude from model input - change to whatever you want to analyze 
+    # exclude_columns = ['u1_prev', 'u2_prev']
+    # exclude_columns = ['ee_dx_target', 'ee_dy_target']
+    # exclude_columns = []
+    exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
+
+    timestamp = "2026-03-24_17-34-44" # change this to the timestamp of the model you want to analyze
+    pred_h5_path = f"analysis/model_predictions/{timestamp}_{training_file_name}_{hidden_file_name}_exclude_{'_'.join(exclude_columns)}.h5"
+    
+    visualize_h5_comparison(mpc_h5_path, pred_h5_path, run_i=0, save_gif=True, gif_filename="robot_comparison.gif")
     visualize_joint_thetas(mpc_h5_path, pred_h5_path, run_i=0)
     visualize_control_inputs(mpc_h5_path, pred_h5_path, run_i=0)
