@@ -7,8 +7,7 @@ from model.basicAnn import basicAnn
 from analysis.analysis_loop import run_model, get_hidden_data
 from data.model_data import X_COLUMNS, Y_COLUMNS
 
-def load_model(model_path, input_size, output_size):
-    model = basicAnn(input_size, output_size)
+def load_model(model, model_path, input_size, output_size):
     model.load_state_dict(torch.load(model_path))
     return model
 

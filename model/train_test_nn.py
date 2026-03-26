@@ -38,10 +38,14 @@ def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, lea
         train_losses (torch.Tensor): tensor containing training loss for each epoch
         test_losses (torch.Tensor): tensor containing testing loss for each epoch
     """
+    model_name = model.__class__.__name__.upper()
+    is_recurrent = "LSTM" in model_name or "GRU" in model_name or "RNN" in model_name
+    
     # define loss function and optimizer
     loss_function = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate) # use small learning rate for adam
-
+    
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4) # use small learning rate for adam
+    
     train_losses = torch.zeros(num_epochs)
     test_losses = torch.zeros(num_epochs)
 
@@ -51,8 +55,11 @@ def train_model(model: nn.Module, train_loader, test_loader, num_epochs=200, lea
         train_loss = 0.0
         for x_batch, y_batch in train_loader:
             # forward pass and loss
-            print(f"Shape of x_batch: {x_batch.shape}")
-            x_batch = x_batch.unsqueeze(1)
+            if is_recurrent:
+                # Generate Gaussian noise (try 0.05 first, bump to 0.1 if it still loops)
+                noise = torch.randn_like(x_batch) * 0.05
+                x_batch = x_batch + noise
+            
             pred = model(x_batch)
             loss = loss_function(pred, y_batch)
 

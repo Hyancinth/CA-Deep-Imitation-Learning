@@ -1,0 +1,10 @@
+Length of ground truth EE trajectory: 100
+GT distance from EE to target at final time step: 0.049842431138878464
+Predicted distance from EE to target at final time step: 0.12971727197028596
+Target position: [-0.15968798  0.21833501], Obstacle position: [1.01190359 0.06506446]
+GT Min distance from EE to obstacle: 0.9584847399606898
+Predicted Min distance from EE to obstacle: 0.9653114482756916
+GT Min distance from Link 1 to obstacle: 0.44960431975648346
+Predicted Min distance from Link 1 to obstacle: 0.45037912592698937
+GT Min distance from Link 2 to obstacle: 0.43493553999999995
+Predicted Min distance from Link 2 to obstacle: 0.4378378599473299

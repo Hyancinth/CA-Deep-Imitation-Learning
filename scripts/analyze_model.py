@@ -16,7 +16,7 @@ if __name__ == "__main__":
     hidden_file_name = "hidden_test_data_2" # change this to what file you want to analyze
     hidden_file_path = f"model/hidden_test_data/{hidden_file_name}.h5"
     save_dir = "model/trained_models/"
-    num_epochs = 500
+    num_epochs = 200
     learning_rate = 0.001
 
     # features to exclude from model input - change to whatever you want to analyze 
@@ -24,11 +24,15 @@ if __name__ == "__main__":
     # exclude_columns = []
     exclude_columns = ['u1_prev', 'u2_prev', 'ee_dx_target', 'ee_dy_target']
 
-    timestamp = "2026-03-24_14-59-31" # change this to the timestamp of the model you want to analyze
+    # timestamp = "2026-03-26_16-20-05" # change this to the timestamp of the model you want to analyze
+    timestamp = "2026-03-26_17-14-25"
     model_path = f"{save_dir}/model_{timestamp}_{'_'.join(exclude_columns)}.pt"
+    # model_path = f"{save_dir}/lstm_{num_epochs}_aug_dropout_02.pt"
     scaler_path = f'model/scalers/input_scaler_{timestamp}.pkl'
-
-    model = load_model(model_path, input_size=len(X_COLUMNS) - len(exclude_columns), output_size=len(Y_COLUMNS))
+    
+    from scripts.model_def import nn 
+    
+    model = load_model(nn, model_path, input_size=len(X_COLUMNS) - len(exclude_columns), output_size=len(Y_COLUMNS))
     scaler = load_scaler(scaler_path)
 
     data = get_hidden_data(hidden_file_path)
@@ -39,8 +43,9 @@ if __name__ == "__main__":
     mpc_min_dist_obstacle_link_2 = data['min_dist_obstacle_link_2']
 
     a = [1.0, 1.0]
-
-    ee_trajectory_pred, joint1_trajectory_pred, theta_trajectory_pred, u_trajectory_pred, ee_dx_target, ee_dy_target, min_dist_obstacle_link_1, min_dist_obstacle_link_2 = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns)
+    
+    seq_length = 3
+    ee_trajectory_pred, joint1_trajectory_pred, theta_trajectory_pred, u_trajectory_pred, ee_dx_target, ee_dy_target, min_dist_obstacle_link_1, min_dist_obstacle_link_2 = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns, seq_length=seq_length)
 
     ee_trajectory_gt = np.array([fk([data['theta1'][i], data['theta2'][i]], a)[2:4] for i in range(len(data['theta1']))])
     print(f"Length of ground truth EE trajectory: {len(ee_trajectory_gt)}")

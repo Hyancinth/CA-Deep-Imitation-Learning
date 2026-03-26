@@ -12,7 +12,37 @@ from model.train_test_nn import create_data_loaders, train_model
 from utils.utils import fk, dist_to_links
 from visualization.visualize_model import plot_train_test_losses, plot_ee_trajectories
 
-def train_and_evaluate_model(file_path, model, exclude_columns = None, num_epochs=200, learning_rate=0.001):
+import numpy as np
+
+def sequence_scaled_data(x_flat, y_flat, original_dict, seq_length):
+    """
+    Takes flat, scaled 2D arrays and converts them to 3D sequences for an LSTM,
+    ensuring windows never cross the boundaries between different runs.
+    """
+    x_seqs, y_seqs = [], []
+    current_idx = 0
+    
+    # Iterate through the original dict to get the exact length of each run
+    for run_key in original_dict.keys():
+        # Get the number of rows in this specific run (by checking its first feature)
+        first_feature = list(original_dict[run_key].keys())[0]
+        run_length = len(original_dict[run_key][first_feature])
+        
+        # Extract this specific run's data from the giant flat array
+        x_run = x_flat[current_idx : current_idx + run_length]
+        y_run = y_flat[current_idx : current_idx + run_length]
+        
+        # Slide the window strictly INSIDE this run
+        for i in range(run_length - seq_length):
+            x_seqs.append(x_run[i : i + seq_length])
+            y_seqs.append(y_run[i + seq_length])
+            
+        # Move the index forward to the start of the next run
+        current_idx += run_length
+        
+    return np.array(x_seqs), np.array(y_seqs)
+
+def train_and_evaluate_model(file_path, model, exclude_columns = None, num_epochs=200, learning_rate=0.001, seq_length=1):
     """
     Train model on the dataset
     
@@ -35,6 +65,12 @@ def train_and_evaluate_model(file_path, model, exclude_columns = None, num_epoch
     x_train, y_train = generate_input_output_data(train_data, exclude_columns)
     x_test, y_test = generate_input_output_data(test_data, exclude_columns)
     x_train_scaled, x_test_scaled, scaler_filename, timestamp = scale_features(x_train, x_test)
+
+    is_lstm = "LSTM" in model.__class__.__name__
+    if is_lstm and seq_length > 1:
+        print(f"LSTM detected! Converting 2D data to 3D sequences (length={seq_length})...")
+        x_train_scaled, y_train = sequence_scaled_data(x_train_scaled, y_train, train_data, seq_length)
+        x_test_scaled, y_test = sequence_scaled_data(x_test_scaled, y_test, test_data, seq_length)
 
     # create data loaders
     train_loader, test_loader = create_data_loaders(x_train_scaled, y_train, x_test_scaled, y_test)
@@ -178,7 +214,7 @@ def predict_control(model, x, scaler):
     u = np.clip(u, -3.0, 3.0)
     return u[0]
 
-def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None):
+def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None, seq_length=1):
     """
     Run the trained model on hidden dataset
 
@@ -222,10 +258,36 @@ def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None
     ee_dy_target = []
     min_dist_obstacle_link_1 = []
     min_dist_obstacle_link_2 = []
-
+    
+    import collections
+    
+    is_lstm = "LSTM" in model.__class__.__name__
+    state_buffer = collections.deque(maxlen=seq_length)
+    
+    # Pre-fill the buffer with the initial state so the LSTM can predict step 1
+    x_init = build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns)
+    for _ in range(seq_length):
+        state_buffer.append(x_init)
+        
     for step in range(num_steps):
+        # 1. Get current state and add to memory buffer
         x = build_feature_vector(theta, target, obstacle, u_prev, a, exclude_columns)
-        u = predict_control(model, x, scaler)
+        state_buffer.append(x) # Pushes oldest state out automatically
+
+        # 2. PREDICT ACTION
+        if is_lstm:
+            # Convert memory to 2D array, scale it, then convert to 3D tensor
+            x_seq = np.array(state_buffer)
+            x_scaled = scaler.transform(x_seq) 
+            x_tensor = torch.tensor(x_scaled, dtype=torch.float32).unsqueeze(0) # Shape: [1, seq_length, features]
+            
+            with torch.no_grad():
+                u = model(x_tensor).numpy()[0] # Extract the predicted [u1, u2] array
+        else:
+            # Fallback to your original function for ANNs
+            u = predict_control(model, x, scaler)
+
+        u = u.flatten() # Ensure it's a 1D array before math operations
 
         # update theta using euler integration
         theta = theta + u * dt
@@ -251,7 +313,7 @@ def run_model(model, scaler, theta0, target, obstacle, a, exclude_columns = None
     return np.array(ee_trajectory), np.array(joint1_trajectory), np.array(theta_trajectory), np.array(u_trajectory), np.array(ee_dx_target), np.array(ee_dy_target), np.array(min_dist_obstacle_link_1), np.array(min_dist_obstacle_link_2)
 
 
-def train_test_loop(training_file_name, hidden_file_name, save_dir, num_epochs, learning_rate, nn, exclude_columns = None):
+def train_test_loop(training_file_name, hidden_file_name, save_dir, num_epochs, learning_rate, nn, exclude_columns = None, seq_length=5):
     """
     Steps for evaluating the trained model on the hidden dataset
     1. Load the hidden dataset using load_data_from_file and generate input-output pairs using generate_input_output_data
@@ -271,7 +333,7 @@ def train_test_loop(training_file_name, hidden_file_name, save_dir, num_epochs, 
 
     # load the training data and train the model
     nn = nn
-    model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path, nn, exclude_columns, num_epochs = num_epochs, learning_rate=learning_rate)
+    model, train_losses, test_losses, scaler_filename, timestamp = train_and_evaluate_model(training_file_path, nn, exclude_columns, num_epochs = num_epochs, learning_rate=learning_rate, seq_length=seq_length)
     plot_train_test_losses(train_losses, test_losses, timestamp, training_file_name, exclude_columns, )
 
     # save state dictionary of the trained model
@@ -288,7 +350,7 @@ def train_test_loop(training_file_name, hidden_file_name, save_dir, num_epochs, 
     obstacle = data['obstacle']
     scaler = joblib.load(scaler_filename)
     # run model on hidden dataset and get predicted end effector trajectory
-    ee_trajectory_pred, joint1_trajectory_pred, theta_trajectory_pred, u_trajectory_pred, ee_dx_target, ee_dy_target, min_dist_obstacle_link_1, min_dist_obstacle_link_2 = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns)
+    ee_trajectory_pred, joint1_trajectory_pred, theta_trajectory_pred, u_trajectory_pred, ee_dx_target, ee_dy_target, min_dist_obstacle_link_1, min_dist_obstacle_link_2 = run_model(model, scaler, theta0, target, obstacle, a, exclude_columns, seq_length)
     print(f"Length of predicted EE trajectory: {len(ee_trajectory_pred)}")
 
     # ground truth end effector trajectory

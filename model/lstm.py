@@ -11,12 +11,10 @@ from sklearn.model_selection import train_test_split
 # 3. Model Definition
 # ==========================================
 class CollisionAvoidanceLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size, seq_len, dropout=0.3):
+    def __init__(self, input_size, hidden_size, num_layers, output_size, dropout=0.3):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.input_size = input_size  # store this
-        self.seq_len = seq_len        # store this
         
         # dropout only applies between LSTM layers, so only useful if num_layers > 1
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers,
@@ -28,9 +26,6 @@ class CollisionAvoidanceLSTM(nn.Module):
         self.fc2 = nn.Linear(32, output_size)
 
     def forward(self, x):
-        # If data comes in flattened (batch, seq_len*input_size) or (batch, seq_len)
-        # reshape it back to (batch, seq_len, input_size)
-        
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         
